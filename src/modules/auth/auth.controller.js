@@ -7,7 +7,7 @@ export const register = async (req, res, next) => {
   try {
     const { username, email, phoneNumber, password, birthdate, gender, role } = req.body;
 
-    if (!["مستخدم", "مهني"].includes(role)) {
+    if (!["user", "professional"].includes(role)) {
       return res.status(400).json({ message: "نوع المستخدم غير صالح" });
     }
 
@@ -21,7 +21,7 @@ export const register = async (req, res, next) => {
     // تشفير كلمة المرور
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    if (role === "مهني") {
+    if (role === "professional") {
       const newProfessional = new professionalModel({
         username,
         email,
@@ -60,11 +60,11 @@ export const login = async (req, res) => {
 
     // البحث عن المستخدم أو المهني
     let user = await userModel.findOne({ email });
-    let role = "مستخدم";
+    let role = "user";
 
     if (!user) {
       user = await professionalModel.findOne({ email });
-      role = "مهني";
+      role = "professional";
     }
 
     if (!user) {
@@ -76,7 +76,7 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "كلمة المرور غير صحيحة" });
     }
 
-    if (role === "مهني" && !user.isApproved) {
+    if (role === "professional" && !user.isApproved) {
       return res.status(403).json({ message: "لم تتم الموافقة على حسابك بعد" });
     }
 

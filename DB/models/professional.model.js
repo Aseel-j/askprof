@@ -26,7 +26,7 @@ const professionalSchema = new Schema({
          },
     gender: {
          type: String,
-         enum: ["ذكر", "انثى", "غير ذلك"],
+         enum: ["ذكر", "أنثى", "غير ذلك"],
          required: true 
         },
     profilePicture: {
@@ -49,7 +49,7 @@ const professionalSchema = new Schema({
     },
     role:{
          type:String,
-         enum:["مستخدم","مهني","ادمن"],
+         enum:["user","professional","ادمن"],
     },
     isApproved: {
         type: Boolean,
