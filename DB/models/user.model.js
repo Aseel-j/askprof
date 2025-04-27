@@ -1,5 +1,5 @@
 import { Schema,model,mongoose } from "mongoose";
-
+import validator from 'validator'
 const userSchema = new Schema({
     username: {
          type: String, 

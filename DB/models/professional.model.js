@@ -1,5 +1,5 @@
 import { Schema,model ,mongoose} from "mongoose";
-
+import validator from 'validator'
 const professionalSchema = new Schema({
     username: {
          type: String, 
@@ -67,5 +67,5 @@ const professionalSchema = new Schema({
 },{
     timestamps:true,
 });
-const professionalModel=  mongoose.models.Professional||model('Professional',professionalSchema);
+const professionalModel=  mongoose.models.Professional|| model('Professional',professionalSchema);
 export default professionalModel;
