@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 
 export const register = async (req, res, next) => {
   try {
-    const { username, email, phoneNumber, password, birthdate, gender, role } = req.body;
+    const { username, email, phoneNumber, password, birthdate, gender, role, governorate } = req.body;
 
     if (!["user", "professional"].includes(role)) {
       return res.status(400).json({ message: "نوع المستخدم غير صالح" });
@@ -21,6 +21,16 @@ export const register = async (req, res, next) => {
     // تشفير كلمة المرور
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // تحقق من وجود المحافظة في سكيما المحافظات
+    let governorateExists = null;
+    if (role === "professional" && governorate) {
+      governorateExists = await governorateModel.findOne({ name: governorate });
+      if (!governorateExists) {
+        return res.status(400).json({ message: "المحافظة غير موجودة" });
+      }
+    }
+
+    // إذا كان المستخدم مهنيًا، أضف المحافظة في بياناته
     if (role === "professional") {
       const newProfessional = new professionalModel({
         username,
@@ -30,10 +40,13 @@ export const register = async (req, res, next) => {
         birthdate,
         gender,
         role,
+        governorate: governorateExists ? governorateExists.name : '', // نربط المحافظة اسمها فقط
         isApproved: false,
       });
+
       await newProfessional.save();
       return res.status(201).json({ message: "تم تسجيل الحساب المهني بنجاح، بانتظار موافقة الأدمن" });
+
     } else {
       const newUser = new userModel({
         username,
@@ -43,16 +56,16 @@ export const register = async (req, res, next) => {
         birthdate,
         gender,
         role,
+        // لا حاجة لحفظ المحافظة هنا للمستخدم العادي
       });
+
       await newUser.save();
       return res.status(201).json({ message: "تم إنشاء حساب المستخدم بنجاح" });
     }
   } catch (error) {
     return res.status(500).json({ message: "حدث خطأ أثناء التسجيل", error: error.message });
   }
-   
 };
-
 
 export const login = async (req, res) => {
   try {
