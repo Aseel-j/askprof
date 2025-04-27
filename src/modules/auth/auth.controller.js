@@ -1,5 +1,6 @@
 import professionalModel from '../../../DB/models/professional.model.js';
 import userModel from '../../../DB/models/user.model.js';
+import governorateModel from '../../../DB/models/governorate.model.js';
 import bcrypt from 'bcryptjs';
 import jwt from "jsonwebtoken";
 
@@ -40,7 +41,7 @@ export const register = async (req, res, next) => {
         birthdate,
         gender,
         role,
-        governorate: governorateExists ? governorateExists.name : '', // نربط المحافظة اسمها فقط
+        governorate: governorateExists ? governorateExists : null, // تخزين الكائن الكامل للمحافظة
         isApproved: false,
       });
 

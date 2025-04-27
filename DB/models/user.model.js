@@ -1,5 +1,4 @@
 import { Schema,model,mongoose } from "mongoose";
-import validator from 'validator'
 const userSchema = new Schema({
     username: {
          type: String, 
@@ -11,12 +10,6 @@ const userSchema = new Schema({
           type: String,
           required: true,
           unique: true,
-          validate: {
-            validator: function(v) {
-              return validator.isEmail(v);
-            },
-            message: props => `${props.value} is not a valid email address!`
-          }
         },
         phoneNumber: {
           type: String,

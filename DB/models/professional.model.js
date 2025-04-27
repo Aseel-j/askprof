@@ -1,5 +1,4 @@
 import { Schema,model ,mongoose} from "mongoose";
-import validator from 'validator'
 const professionalSchema = new Schema({
     username: {
          type: String, 
@@ -11,12 +10,6 @@ const professionalSchema = new Schema({
           type: String,
           required: true,
           unique: true,
-          validate: {
-            validator: function(v) {
-              return validator.isEmail(v);
-            },
-            message: props => `${props.value} is not a valid email address!`
-          }
         },
         phoneNumber: {
           type: String,
@@ -61,7 +54,8 @@ const professionalSchema = new Schema({
     isApproved: {
         type: Boolean,
         default: false,
-      }
+      },
+      governorate: { type: mongoose.Schema.Types.ObjectId, ref: 'Governorate' },
    
 
 },{
