@@ -7,14 +7,21 @@ const userSchema = new Schema({
          min :3,
          max: 50,
         },
-    email: {
-         type: String,
+        email: {
+          type: String,
           required: true,
-           unique: true 
+          unique: true,
+          validate: {
+            validator: function(v) {
+              return validator.isEmail(v);
+            },
+            message: props => `${props.value} is not a valid email address!`
+          }
         },
-    phoneNumber: { 
-         type: String,
-          
+        phoneNumber: {
+          type: String,
+          required: true,
+          match: /^\+[1-9]\d{1,14}$/  // هذا Regex يسمح بمقدمة دولية وأرقام فقط
         },
     password: { 
          type: String,
