@@ -25,7 +25,7 @@ export const register = async (req, res, next) => {
     // تحقق من وجود المحافظة في سكيما المحافظات
     let governorateExists = null;
     if (usertype === "مهني" && governorate) {
-      governorateExists = await governorateModel.findOne({ name: governorate });
+      governorateExists = await governorateModel.findById({ governorate });
       if (!governorateExists) {
         return res.status(400).json({ message: "المحافظة غير موجودة" });
       }
