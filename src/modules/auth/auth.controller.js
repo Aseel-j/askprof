@@ -29,7 +29,7 @@ export const register = async (req, res, next) => {
       if (!governorateExists) {
         return res.status(400).json({ message: "المحافظة غير موجودة" });
       }
-      governorateName = governorateExists.name;
+   
     }
     
 
@@ -43,7 +43,7 @@ export const register = async (req, res, next) => {
         birthdate,
         gender,
         usertype,
-        governorate:governorateName , // تخزين الـ ID فقط
+        governorate, // تخزين الـ ID فقط
         isApproved: false,
       });
 
