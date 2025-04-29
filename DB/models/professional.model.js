@@ -48,7 +48,7 @@ const professionalSchema = new Schema({
     },
     usertype: {
          type:String,
-         enum:["user","professional","ادمن"],
+         enum:["مستخدم","مهني"],
     },
     isApproved: {
         type: Boolean,

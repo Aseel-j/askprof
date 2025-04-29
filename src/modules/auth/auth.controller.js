@@ -43,7 +43,7 @@ export const register = async (req, res, next) => {
         birthdate,
         gender,
         usertype,
-        governorate, // تخزين الـ ID فقط
+        governorate: governorateId, // استخدم الـ ID هنا
         isApproved: false,
       });
 
