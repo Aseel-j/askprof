@@ -23,13 +23,15 @@ export const register = async (req, res, next) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // تحقق من وجود المحافظة في سكيما المحافظات
-    let governorateExists = null;
+    let governorateName = null;
     if (usertype === "مهني" && governorate) {
-      governorateExists = await governorateModel.findById({ governorate });
+      const governorateExists = await governorateModel.findById(governorate);
       if (!governorateExists) {
         return res.status(400).json({ message: "المحافظة غير موجودة" });
       }
+      governorateName = governorateExists.name;
     }
+    
 
     // إذا كان المستخدم مهنيًا، أضف المحافظة في بياناته
     if (usertype === "مهني") {
@@ -41,7 +43,7 @@ export const register = async (req, res, next) => {
         birthdate,
         gender,
         usertype,
-        governorate: governorateExists ? governorateExists.name : null, // تخزين الـ ID فقط
+        governorate:governorateName , // تخزين الـ ID فقط
         isApproved: false,
       });
 
