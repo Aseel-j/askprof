@@ -21,15 +21,16 @@ export const register = async (req, res, next) => {
 
     // تشفير كلمة المرور
     const hashedPassword = await bcrypt.hash(password, 10);
+   
 
     // تحقق من وجود المحافظة في سكيما المحافظات
-    let governorateName = null;
+    let governorateId = null;
     if (usertype === "مهني" && governorate) {
       const governorateExists = await governorateModel.findOne({ name: governorate });
       if (!governorateExists) {
         return res.status(400).json({ message: "المحافظة غير موجودة" });
       }
-   
+      governorateId = governorateExists._id; // 🟢 حفظ ID المحافظة
     }
     
 
