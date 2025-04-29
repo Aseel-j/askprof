@@ -6,9 +6,9 @@ import jwt from "jsonwebtoken";
 
 export const register = async (req, res, next) => {
   try {
-    const { username, email, phoneNumber, password, birthdate, gender, role, governorate } = req.body;
+    const { username, email, phoneNumber, password, birthdate, gender, usertype, governorate } = req.body;
 
-    if (!["user", "professional"].includes(role)) {
+    if (!["مستخدم", "مهني"].includes(usertype)) {
       return res.status(400).json({ message: "نوع المستخدم غير صالح" });
     }
 
@@ -24,7 +24,7 @@ export const register = async (req, res, next) => {
 
     // تحقق من وجود المحافظة في سكيما المحافظات
     let governorateExists = null;
-    if (role === "professional" && governorate) {
+    if (usertype === "مهني" && governorate) {
       governorateExists = await governorateModel.findOne({ name: governorate });
       if (!governorateExists) {
         return res.status(400).json({ message: "المحافظة غير موجودة" });
@@ -32,7 +32,7 @@ export const register = async (req, res, next) => {
     }
 
     // إذا كان المستخدم مهنيًا، أضف المحافظة في بياناته
-    if (role === "professional") {
+    if (usertype === "مهني") {
       const newProfessional = new professionalModel({
         username,
         email,
@@ -40,7 +40,7 @@ export const register = async (req, res, next) => {
         password: hashedPassword,
         birthdate,
         gender,
-        role,
+        usertype,
         governorate: governorateExists ? governorateExists : null, // تخزين الكائن الكامل للمحافظة
         isApproved: false,
       });
@@ -56,8 +56,7 @@ export const register = async (req, res, next) => {
         password: hashedPassword,
         birthdate,
         gender,
-        role,
-        // لا حاجة لحفظ المحافظة هنا للمستخدم العادي
+        usertype,
       });
 
       await newUser.save();
@@ -74,11 +73,11 @@ export const login = async (req, res) => {
 
     // البحث عن المستخدم أو المهني
     let user = await userModel.findOne({ email });
-    let role = "user";
+    let usertype = "مستخدم";
 
     if (!user) {
       user = await professionalModel.findOne({ email });
-      role = "professional";
+      usertype = "مهني";
     }
 
     if (!user) {
@@ -90,7 +89,7 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "كلمة المرور غير صحيحة" });
     }
 
-    if (role === "professional" && !user.isApproved) {
+    if (usertype === "مهني" && !user.isApproved) {
       return res.status(403).json({ message: "لم تتم الموافقة على حسابك بعد" });
     }
 

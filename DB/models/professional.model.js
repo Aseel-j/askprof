@@ -14,7 +14,6 @@ const professionalSchema = new Schema({
         phoneNumber: {
           type: String,
           required: true,
-          match: /^\+[1-9]\d{1,14}$/  // هذا Regex يسمح بمقدمة دولية وأرقام فقط
         },
     password: { 
          type: String,
@@ -26,7 +25,7 @@ const professionalSchema = new Schema({
          },
     gender: {
          type: String,
-         enum: ["ذكر", "أنثى", "غير ذلك"],
+         enum: ["ذكر", "أنثى"],
          required: true 
         },
     profilePicture: {
@@ -47,7 +46,7 @@ const professionalSchema = new Schema({
          type: Boolean,
          default: false,
     },
-    role:{
+    usertype: {
          type:String,
          enum:["user","professional","ادمن"],
     },
