@@ -54,7 +54,16 @@ const professionalSchema = new Schema({
         type: Boolean,
         default: false,
       },
-      governorate: { type: mongoose.Schema.Types.ObjectId, ref: 'Governorate' },
+      governorate: {
+           type:Schema.Types.ObjectId,
+            ref: 'Governorate' 
+          },
+     sendCode:{
+          type: String,
+          default:null,
+     },
+
+
    
 
 },{
