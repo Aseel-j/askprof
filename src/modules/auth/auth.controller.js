@@ -7,7 +7,7 @@ import { customAlphabet  } from 'nanoid'
 import { sendEmail } from '../../utils/SendEmail.js';
 import { AppError } from '../../utils/App.Error.js';
 
-//register
+//انشاء الحساب
 export const register = async (req, res, next) => {
    const { username, email, phoneNumber, password, birthdate, gender, usertype, governorate } = req.body;
 
@@ -88,7 +88,7 @@ export const register = async (req, res, next) => {
     return res.status(200).json({message:"success"});
   };
 
-  //login 
+  //تسجيل الدخول 
 export const login = async (req, res,next) => {
    const { email, password } = req.body;
 
