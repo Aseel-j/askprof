@@ -1,27 +1,55 @@
+import jwt from "jsonwebtoken";
+import userModel from '../../../DB/models/user.model.js';
 import ReviewModel from '../../../DB/models/review.model.js'; 
 import { AppError } from '../../utils/App.Error.js';
 
 export const addReview = async (req, res, next) => {
-    const { comment } = req.body;
-    const token = req.headers; 
-    const decoded= jwt.verify(token,process.env.LOGIN_SIGNAL) ;
-    if(decoded.role !='admin'){
-      return next(new AppError (" not authorized",400));  
-  }
-    // تحقق من أن المستخدم لم يقم بتقييم نفس المهني سابقًا (اختياري)
-    const existingReview = await ReviewModel.findOne({ user: userId, professional: professionalId });
-    if (existingReview) {
-      return next(new AppError("لقد قمت بتقييم هذا المهني مسبقًا", 400));
+  const { comment, rating } = req.body;
+  const {professionalId}=req.params;
+
+    // التحقق من وجود التوكن
+    const {token} = req.headers;
+    // فك التوكن
+    const decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
+
+    // التحقق من هوية المستخدم
+    const user = await userModel.findById(decoded.id);
+    if (!user) {
+      return next(new AppError("المستخدم غير موجود", 404));
     }
 
-    const newReview = await ReviewModel.create({
-      user: userId,
-      professional: professionalId,
-      rating,
-      comment,
-    });
+    if (user.usertype !== "مستخدم") {
+      return next(new AppError("فقط المستخدم يستطيع تقييم الموقع", 403));
+    }
 
-    return res.status(201).json({ message: "تمت إضافة التقييم بنجاح", review: newReview });
+  // تحقق من وجود المهني
+  const professional = await ProfessionalModel.findById(professionalId);
+  if (!professional) {
+    return next(new AppError("المهني غير موجود", 404));
+  }
+
+  // تحقق من عدم تكرار التقييم
+  const existingReview = await ReviewModel.findOne({
+    user: userId,
+    professional: professionalId,
+  });
+
+  if (existingReview) {
+    return next(new AppError("لقد قمت بتقييم هذا المهني مسبقًا", 400));
+  }
+
+  // إنشاء التقييم
+  const newReview = await ReviewModel.create({
+    user: userId,
+    professional: professionalId,
+    rating: Number(rating), // تأكد أن التقييم رقم
+    comment,
+  });
+
+  return res.status(201).json({
+    message: "تمت إضافة التقييم بنجاح",
+    review: newReview,
+  });
 };
 //ارجاع راي حسب المهني 
 export const getProfessionalReviews = async (req, res, next) => {

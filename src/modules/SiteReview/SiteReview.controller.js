@@ -35,7 +35,7 @@ export const addSiteReview = async (req, res, next) => {
 };
 
 //ارجاع الاراء 
-export const getSiteReviews = async (req, res, next) => {
+/*export const getSiteReviews = async (req, res, next) => {
     // استخراج skip و limit من الاستعلام (query)
     const skip = parseInt(req.query.skip) || 0;
     const limit = parseInt(req.query.limit) || 10;
@@ -54,6 +54,22 @@ export const getSiteReviews = async (req, res, next) => {
       total: totalReviews,
       count: reviews.length,
       reviews,
+    });
+  
+};*/
+export const getSiteReviews = async (req, res, next) => {
+    // إحضار كل التقييمات مع اسم المستخدم
+    const allReviews = await SiteReviewModel.find()
+      .populate("user", "username");
+
+    // اختيار 15 تقييم عشوائي
+    const shuffled = allReviews.sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, 15);
+
+    res.status(200).json({
+      total: allReviews.length,
+      count: selected.length,
+      reviews: selected,
     });
   
 };

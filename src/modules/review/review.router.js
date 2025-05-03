@@ -5,8 +5,8 @@ import { } from './review.validation.js';
 import { asyncHandler } from '../../utils/catchError.js';
 const router=Router();
 //اضافة راي
-router.post('/addReview',validation(registerSchema),asyncHandler(controller.addReview));
+router.post('/addReview/:professionalId',asyncHandler(controller.addReview));
 // تاكيد الحساب 
-router.get('/confirmEmail/:token',asyncHandler(controller.confirmEmail));
+router.get('/getReviews/:professionalId',asyncHandler(controller.getProfessionalReviews));
 
 export default router;

@@ -9,76 +9,86 @@ import { AppError } from '../../utils/App.Error.js';
 
 //انشاء الحساب
 export const register = async (req, res, next) => {
-   const { username, email, phoneNumber, password, birthdate, gender, usertype, governorate } = req.body;
+  const {
+    username,
+    email,
+    phoneNumber,
+    password,
+    birthdate,
+    gender,
+    usertype,
+    governorate,
+    professionField // 🟢 إضافة المجال المهني من الطلب
+  } = req.body;
 
-    if (!["مستخدم", "مهني"].includes(usertype)) {
-      return next(new AppError("نوع المستخدم غير صالح"  , 400));
+  if (!["مستخدم", "مهني"].includes(usertype)) {
+    return next(new AppError("نوع المستخدم غير صالح", 400));
+  }
+
+  const existingUser = await userModel.findOne({ email });
+  const existingProfessional = await professionalModel.findOne({ email });
+  if (existingUser || existingProfessional) {
+    return next(new AppError("البريد الإلكتروني مستخدم مسبقًا", 409));
+  }
+
+  const hashedPassword = await bcrypt.hash(password, parseInt(process.env.SALT_ROUND));
+
+  let governorateId = null;
+  if (usertype === "مهني" && governorate) {
+    const governorateExists = await governorateModel.findOne({ name: governorate });
+    if (!governorateExists) {
+      return next(new AppError("المحافظة غير موجودة", 400));
+    }
+    governorateId = governorateExists._id;
+  }
+
+  if (usertype === "مهني") {
+    if (!professionField) {
+      return next(new AppError("يرجى إدخال مجال المهني", 400));
     }
 
-    // تحقق إذا كان الإيميل موجودًا مسبقًا
-    const existingUser = await userModel.findOne({ email });
-    const existingProfessional = await professionalModel.findOne({ email });
-    if (existingUser || existingProfessional) {
-      return next(new AppError("البريد الإلكتروني مستخدم مسبقًا" , 409));
-    }
+    const newProfessional = new professionalModel({
+      username,
+      email,
+      phoneNumber,
+      password: hashedPassword,
+      birthdate,
+      gender,
+      usertype,
+      governorate: governorateId,
+      professionField, // 🟢 إضافة المجال المهني هنا
+      isApproved: false,
+    });
 
-    // تشفير كلمة المرور
-    const hashedPassword = await bcrypt.hash(password,parseInt(process.env.SALT_ROUND));
-   
+    await newProfessional.save();
+    return res.status(201).json({ message: "تم تسجيل الحساب المهني بنجاح، بانتظار موافقة الأدمن" });
 
-    // تحقق من وجود المحافظة في سكيما المحافظات
-    let governorateId = null;
-    if (usertype === "مهني" && governorate) {
-      const governorateExists = await governorateModel.findOne({ name: governorate });
-      if (!governorateExists) {
-        return next(new AppError("المحافظة غير موجودة"  , 400));
-      }
-      governorateId = governorateExists._id; // 🟢 حفظ ID المحافظة
-    }
-    
+  } else {
+    const newUser = new userModel({
+      username,
+      email,
+      phoneNumber,
+      password: hashedPassword,
+      birthdate,
+      gender,
+      usertype,
+    });
 
-    // إذا كان المستخدم مهنيًا، أضف المحافظة في بياناته
-    if (usertype === "مهني") {
-      const newProfessional = new professionalModel({
-        username,
-        email,
-        phoneNumber,
-        password: hashedPassword,
-        birthdate,
-        gender,
-        usertype,
-        governorate: governorateId, // استخدم الـ ID هنا
-        isApproved: false,
-      });
+    await newUser.save();
 
-      await newProfessional.save();
-      return res.status(201).json({ message: "تم تسجيل الحساب المهني بنجاح، بانتظار موافقة الأدمن" });
-
-    } else {
-      const newUser = new userModel({
-        username,
-        email,
-        phoneNumber,
-        password: hashedPassword,
-        birthdate,
-        gender,
-        usertype,
-      });
-
-      await newUser.save();
-      //انشاء التوكن
-      const token = jwt.sign({email},process.env.CONFIRM_EMAIL_SIGNAL);
-      const html =` 
+    const token = jwt.sign({ email }, process.env.CONFIRM_EMAIL_SIGNAL);
+    const html = `
       <div>
-      <h1>مرحبا ${username}<h1/>
-      <h2>تاكيد الحساب<h2/>
-      <a href="${req.protocol}://${req.headers.host}/auth/confirmEmail/${token}">confirm your email<a/>
-      <div/>`;
-      await sendEmail(email,"تاكيد الحساب",html); 
-      return res.status(201).json({ message: "تم إنشاء حساب المستخدم بنجاح" });
+        <h1>مرحبا ${username}</h1>
+        <h2>تأكيد الحساب</h2>
+        <a href="${req.protocol}://${req.headers.host}/auth/confirmEmail/${token}">confirm your email</a>
+      </div>`;
 
-    }
-  };
+    await sendEmail(email, "تأكيد الحساب", html);
+    return res.status(201).json({ message: "تم إنشاء حساب المستخدم بنجاح" });
+  }
+};
+
 
   //تاكيد الحساب 
   export const confirmEmail= async (req,res)=>{
