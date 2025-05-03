@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import professionalModel from '../../../DB/models/professional.model.js';
 import userModel from '../../../DB/models/user.model.js';
 import ReviewModel from '../../../DB/models/review.model.js'; 
 import { AppError } from '../../utils/App.Error.js';
@@ -23,14 +24,14 @@ export const addReview = async (req, res, next) => {
     }
 
   // تحقق من وجود المهني
-  const professional = await ProfessionalModel.findById(professionalId);
+  const professional = await professionalModel.findById(professionalId);
   if (!professional) {
     return next(new AppError("المهني غير موجود", 404));
   }
 
   // تحقق من عدم تكرار التقييم
   const existingReview = await ReviewModel.findOne({
-    user: userId,
+    user: user._id,
     professional: professionalId,
   });
 
@@ -40,7 +41,7 @@ export const addReview = async (req, res, next) => {
 
   // إنشاء التقييم
   const newReview = await ReviewModel.create({
-    user: userId,
+    user: user._id,
     professional: professionalId,
     rating: Number(rating), // تأكد أن التقييم رقم
     comment,
