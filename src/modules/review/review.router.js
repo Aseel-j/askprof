@@ -6,7 +6,7 @@ import { asyncHandler } from '../../utils/catchError.js';
 const router=Router();
 //اضافة راي
 router.post('/addReview/:professionalId',validation(addReviewSchema),asyncHandler(controller.addReview));
-// تاكيد الحساب 
+// عرض الاراء بالمهني 
 router.get('/getReviews/:professionalId',asyncHandler(controller.getProfessionalReviews));
 
 export default router; 

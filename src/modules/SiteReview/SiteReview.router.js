@@ -1,5 +1,5 @@
 import {Router} from 'express';
-import * as controller from './SiteReview.controller.js'
+import * as controller from './SiteReview.controller.js';
 import validation from '../../middleware/validation.js';
 import {addSiteReviewSchema} from './SiteReview.validation.js';
 import {asyncHandler } from '../../utils/catchError.js';

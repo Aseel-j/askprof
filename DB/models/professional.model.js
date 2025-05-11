@@ -6,9 +6,18 @@ username: {
      min :3,
      max: 50,
      },
+fullname: {
+type: String, 
+min :3,
+max: 50,
+},
 email: {
      type: String,
      required: true,
+     unique: true,
+     },
+anotheremail: {
+     type: String,
      unique: true,
      },
 phoneNumber: {
@@ -59,6 +68,10 @@ governorate: {
      type:Schema.Types.ObjectId,
      ref: 'Governorate' 
      },
+city:{
+     type: String,
+     default:null,
+},
 sendCode:{
      type: String,
      default:null,
