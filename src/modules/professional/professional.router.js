@@ -10,17 +10,26 @@ router.put('/uploadProfilePicture',fileUpload(fileValidation.image).single('imag
 // تحميل الفيديو
 router.put('/uploadVideo',fileUpload(fileValidation.video).single('video'),asyncHandler(controller.uploadVideo));
 //عرض الصورة
-router.get('/getProfilePicture',asyncHandler(controller.getProfilePicture));
+router.get('/getProfilePicture/:id',asyncHandler(controller.getProfilePicture));
 //عرض الفيديو
-router.get('/getVideo',asyncHandler(controller.getVideo));
+router.get('/getVideo/:id',asyncHandler(controller.getVideo));
 //تحديث بيانات الملف الشخصي 
 router.put('/updateProfessionalProfile',asyncHandler(controller.updateProfessionalProfile));
 //عرض بيانات الملف الشخصي 
-router.get('/getProfessionalProfile',asyncHandler(controller.getProfessionalProfile));
+router.get('/getProfessionalProfile/:id',asyncHandler(controller.getProfessionalProfile));
 //اضافة نبذة عن المهني
 router.put('/updateProfessionalDescription',asyncHandler(controller.updateProfessionalDescription));
 //عرض النبذة عن المهني
-router.get('/getProfessionalDescription',asyncHandler(controller.getProfessionalDescription));
+router.get('/getProfessionalDescription/:id',asyncHandler(controller.getProfessionalDescription));
+//اضافة عمل من اعمال المهني
+router.post('/addProfessionalWork',asyncHandler(controller.addProfessionalWork));
+//عرض الاعمال
+router.get('/getProfessionalWorks/:id',asyncHandler(controller.getProfessionalWorks));
+//حذف عمل 
+router.delete('/deleteWork/:id',asyncHandler(controller.deleteWork));
+
+
+
 
 
 

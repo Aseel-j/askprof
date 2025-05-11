@@ -54,7 +54,6 @@ export const addReview = async (req, res, next) => {
 };
 //ارجاع راي حسب المهني 
 export const getProfessionalReviews = async (req, res, next) => {
-    try {
       const { professionalId } = req.params;
   
       const reviews = await ReviewModel.find({ professional: professionalId })
@@ -62,8 +61,6 @@ export const getProfessionalReviews = async (req, res, next) => {
         .sort({ date: -1 }); // ترتيب تنازلي حسب التاريخ
   
       return res.status(200).json({ reviews });
-    } catch (error) {
-      next(error);
-    }
+  
   };
   
