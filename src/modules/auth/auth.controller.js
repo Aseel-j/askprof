@@ -18,7 +18,7 @@ export const register = async (req, res, next) => {
     gender,
     usertype,
     governorate,
-    professionField // 🟢 إضافة المجال المهني من الطلب
+    professionField 
   } = req.body;
 
   if (!["مستخدم", "مهني"].includes(usertype)) {

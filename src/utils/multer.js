@@ -17,7 +17,8 @@ function fileUpload(customValidation = []) {
         }
     }
 
-    const upload = multer({ fileFilter, storage });
+    const upload = multer({ fileFilter, storage});
+    //,limits: {fileSize: maxSizeMB * 1024 * 1024 }
     return upload;
 }
 
