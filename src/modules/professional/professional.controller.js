@@ -110,7 +110,7 @@ export const uploadVideo = async (req, res, next) => {
         return next(new AppError("المهني غير موجود ", 404));
       }
       // تحديث الحقول إذا تم إرسالها فقط
-      const {username,fullname,bio,governorate,city,anotheremail,phoneNumber} = req.body;
+      const {username,bio,governorate,city,anotheremail,phoneNumber} = req.body;
      
       const governoratename = await GovernorateModel.findOne({ name: governorate });
   
@@ -119,7 +119,6 @@ export const uploadVideo = async (req, res, next) => {
       }
   
       if (username) professional.username = username;
-      if (fullname) professional.fullname = fullname;
       if (governorate) professional.governorate = governoratename._id;
       if (anotheremail) professional.anotheremail = anotheremail;
       if (bio) professional.bio = bio;
@@ -151,7 +150,6 @@ export const uploadVideo = async (req, res, next) => {
   // الحقول التي نريد عرضها فقط
   const allowedFields = [
     "username",
-    "fullname",
     "city",
     "governorate",
     "bio",
@@ -288,6 +286,7 @@ export const deleteWork = async (req, res, next) => {
     });
  
 };
+
 
   
   

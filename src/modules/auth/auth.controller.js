@@ -22,13 +22,16 @@ export const register = async (req, res, next) => {
   } = req.body;
 
   if (!["مستخدم", "مهني"].includes(usertype)) {
-    return next(new AppError("نوع المستخدم غير صالح", 400));
+    //return next(new AppError("نوع المستخدم غير صالح", 400));
+    return res.status(400).json({message:"نوع المستخدم غير صالح"});
+
   }
 
   const existingUser = await userModel.findOne({ email });
   const existingProfessional = await professionalModel.findOne({ email });
   if (existingUser || existingProfessional) {
-    return next(new AppError("البريد الإلكتروني مستخدم مسبقًا", 409));
+    return res.status(409).json({message:"البريد الإلكتروني مستخدم مسبقًا"});
+    //return next(new AppError("البريد الإلكتروني مستخدم مسبقًا", 409));
   }
 
   const hashedPassword = await bcrypt.hash(password, parseInt(process.env.SALT_ROUND));
@@ -37,14 +40,18 @@ export const register = async (req, res, next) => {
   if (usertype === "مهني" && governorate) {
     const governorateExists = await governorateModel.findOne({ name: governorate });
     if (!governorateExists) {
-      return next(new AppError("المحافظة غير موجودة", 400));
+      return res.status(400).json({message:"المحافظة غير موجودة"});
+
+      //return next(new AppError("المحافظة غير موجودة", 400));
     }
     governorateId = governorateExists._id;
   }
 
   if (usertype === "مهني") {
     if (!professionField) {
-      return next(new AppError("يرجى إدخال مجال المهني", 400));
+     return res.status(400).json({message:"يرجى إدخال مجال المهني"});
+ 
+      //return next(new AppError("يرجى إدخال مجال المهني", 400));
     }
 
     const newProfessional = new professionalModel({
@@ -56,12 +63,12 @@ export const register = async (req, res, next) => {
       gender,
       usertype,
       governorate: governorateId,
-      professionField, // 🟢 إضافة المجال المهني هنا
+      professionField, 
       isApproved: false,
     });
 
     await newProfessional.save();
-    return res.status(201).json({ message: "تم تسجيل الحساب المهني بنجاح، بانتظار موافقة الأدمن" });
+    return res.status(201).json({ message: "تم انشاء الحساب المهني بنجاح، بانتظار موافقة الأدمن" });
 
   } else {
     const newUser = new userModel({
@@ -110,22 +117,30 @@ export const login = async (req, res,next) => {
       user = await professionalModel.findOne({ email });
       usertype = "مهني";
     }
-
+    
     if (!user) {
-      return next(new AppError("البريد الإلكتروني غير صحيح" , 404));
+     return res.status(400).json({ message: "خطا في البريد الإلكتروني او كلمة المرور " });
+
+      //return next(new AppError("البريد الإلكتروني غير صحيح" , 404));
     }
 
+  
     if (!user.confirmEmail) {
-      return next(new AppError("يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول" , 403));
-    }
+      return res.status(403).json({ message: "يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول" });
 
+     // return next(new AppError("يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول" , 403));
+    }
     const check = bcrypt.compareSync(password, user.password);
-    if (!check) {
-      return next(new AppError("كلمة المرور غير صحيحة" , 400));
+   if (!check) {
+     return res.status(400).json({ message: "خطا في البريد الإلكتروني او كلمة المرور " });
+
+     // return next(new AppError("كلمة المرور غير صحيحة" , 400));
     }
 
     if (usertype === "مهني" && !user.isApproved) {
-      return next(new AppError("لم تتم الموافقة على حسابك بعد ", 403));
+      return res.status(403).json({ message: "لم تتم الموافقة على حسابك بعد " });
+
+      //return next(new AppError("لم تتم الموافقة على حسابك بعد ", 403));
     }
 
     const token = jwt.sign({ id: user._id, name: user.username, usertype: user.usertype },process.env.LOGIN_SIGNAL);
@@ -146,7 +161,9 @@ export const SendCode = async(req,res,next)=>{
     // إذا لم يوجد، ابحث في المهنيين
     user = await professionalModel.findOne({ email });
     if (!user) {
-      return next(new AppError("البريد الإلكتروني غير مسجل", 404));
+     return res.status(404).json({ message: "البريد الإلكتروني غير مسجل " });
+
+     // return next(new AppError("البريد الإلكتروني غير مسجل", 404));
     }
     user.sendCode = code;
     await user.save();
@@ -167,11 +184,15 @@ export const resetPassword= async(req,res,next)=>{
      // إذا لم يوجد، ابحث في المهنيين
      user = await professionalModel.findOne({ email });
      if (!user) {
-       return next(new AppError("البريد الإلكتروني غير صحيح", 400));
+      return res.status(400).json({ message: "البريد الإلكتروني غير صحيح " });
+
+       //return next(new AppError("البريد الإلكتروني غير صحيح", 400));
      }
    }
   if(user.sendCode != code){
-    return next (new AppError ( "رمز التحقق غير صحيح",400));
+   return res.status(400).json({ message: "رمز التحقق غير صحيح " });
+
+   // return next (new AppError ( "رمز التحقق غير صحيح",400));
   }
   const hashedpassword= await bcrypt.hash(password,parseInt(process.env.SALT_ROUND));
   user.password=hashedpassword;
