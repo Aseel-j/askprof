@@ -5,7 +5,6 @@ import bcrypt from 'bcryptjs';
 import jwt from "jsonwebtoken";
 import { customAlphabet  } from 'nanoid'
 import { sendEmail } from '../../utils/SendEmail.js';
-import { AppError } from '../../utils/App.Error.js';
 
 //انشاء الحساب
 export const register = async (req, res, next) => {

@@ -4,7 +4,7 @@ import userModel from '../../../DB/models/user.model.js';
 import ReviewModel from '../../../DB/models/review.model.js'; 
 import { AppError } from '../../utils/App.Error.js';
 
-export const addReview = async (req, res, next) => {
+export const addReview = async (req, res) => {
   const { comment, rating } = req.body;
   const {professionalId}=req.params;
 
@@ -16,17 +16,23 @@ export const addReview = async (req, res, next) => {
     // التحقق من هوية المستخدم
     const user = await userModel.findById(decoded.id);
     if (!user) {
-      return next(new AppError("المستخدم غير موجود", 404));
+      return res.status(404).json({ message: "المستخدم غير موجود" });
+
+     // return next(new AppError("المستخدم غير موجود", 404));
     }
 
     if (user.usertype !== "مستخدم") {
-      return next(new AppError("فقط المستخدم يستطيع تقييم الموقع", 403));
+       return res.status(403).json({ message: "فقط المستخدم يستطيع تقييم الموقع" });
+
+     // return next(new AppError("فقط المستخدم يستطيع تقييم الموقع", 403));
     }
 
   // تحقق من وجود المهني
   const professional = await professionalModel.findById(professionalId);
   if (!professional) {
-    return next(new AppError("المهني غير موجود", 404));
+     return res.status(404).json({ message: "المهني غير موجود" });
+
+    //return next(new AppError("المهني غير موجود", 404));
   }
 
   // تحقق من عدم تكرار التقييم
@@ -36,7 +42,9 @@ export const addReview = async (req, res, next) => {
   });
 
   if (existingReview) {
-    return next(new AppError("لقد قمت بتقييم هذا المهني مسبقًا", 400));
+    return res.status(400).json({ message: "لقد قمت بتقييم هذا المهني مسبقًا" });
+
+   // return next(new AppError("لقد قمت بتقييم هذا المهني مسبقًا", 400));
   }
 
   // إنشاء التقييم
@@ -53,7 +61,7 @@ export const addReview = async (req, res, next) => {
   });
 };
 //ارجاع راي حسب المهني 
-export const getProfessionalReviews = async (req, res, next) => {
+export const getProfessionalReviews = async (req, res) => {
       const { professionalId } = req.params;
   
       const reviews = await ReviewModel.find({ professional: professionalId })
