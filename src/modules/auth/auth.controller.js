@@ -21,16 +21,13 @@ export const register = async (req, res, next) => {
   } = req.body;
 
   if (!["مستخدم", "مهني"].includes(usertype)) {
-    //return next(new AppError("نوع المستخدم غير صالح", 400));
-    return res.status(400).json({message:"نوع المستخدم غير صالح"});
-
+    return res.status(400).json({ message: "نوع المستخدم غير صالح" });
   }
 
   const existingUser = await userModel.findOne({ email });
   const existingProfessional = await professionalModel.findOne({ email });
   if (existingUser || existingProfessional) {
-    return res.status(409).json({message:"البريد الإلكتروني مستخدم مسبقًا"});
-    //return next(new AppError("البريد الإلكتروني مستخدم مسبقًا", 409));
+    return res.status(409).json({ message: "البريد الإلكتروني مستخدم مسبقًا" });
   }
 
   const hashedPassword = await bcrypt.hash(password, parseInt(process.env.SALT_ROUND));
@@ -39,18 +36,22 @@ export const register = async (req, res, next) => {
   if (usertype === "مهني" && governorate) {
     const governorateExists = await governorateModel.findOne({ name: governorate });
     if (!governorateExists) {
-      return res.status(400).json({message:"المحافظة غير موجودة"});
-
-      //return next(new AppError("المحافظة غير موجودة", 400));
+      return res.status(400).json({ message: "المحافظة غير موجودة" });
     }
     governorateId = governorateExists._id;
   }
 
+  const token = jwt.sign({ email }, process.env.CONFIRM_EMAIL_SIGNAL);
+  const html = `
+    <div>
+      <h1>مرحبا ${username}</h1>
+      <h2>تأكيد الحساب</h2>
+      <a href="${req.protocol}://${req.headers.host}/auth/confirmEmail/${token}">confirm your email</a>
+    </div>`;
+
   if (usertype === "مهني") {
     if (!professionField) {
-     return res.status(400).json({message:"يرجى إدخال مجال المهني"});
- 
-      //return next(new AppError("يرجى إدخال مجال المهني", 400));
+      return res.status(400).json({ message: "يرجى إدخال مجال المهني" });
     }
 
     const newProfessional = new professionalModel({
@@ -62,11 +63,13 @@ export const register = async (req, res, next) => {
       gender,
       usertype,
       governorate: governorateId,
-      professionField, 
+      professionField,
       isApproved: false,
+      confirmEmail: false
     });
 
     await newProfessional.save();
+    await sendEmail(email, "تأكيد الحساب", html);
     return res.status(201).json({ message: "تم انشاء الحساب المهني بنجاح، بانتظار موافقة الأدمن" });
 
   } else {
@@ -78,31 +81,29 @@ export const register = async (req, res, next) => {
       birthdate,
       gender,
       usertype,
+      confirmEmail: false
     });
 
     await newUser.save();
-
-    const token = jwt.sign({ email }, process.env.CONFIRM_EMAIL_SIGNAL);
-    const html = `
-      <div>
-        <h1>مرحبا ${username}</h1>
-        <h2>تأكيد الحساب</h2>
-        <a href="${req.protocol}://${req.headers.host}/auth/confirmEmail/${token}">confirm your email</a>
-      </div>`;
-
     await sendEmail(email, "تأكيد الحساب", html);
     return res.status(201).json({ message: "تم إنشاء حساب المستخدم بنجاح" });
   }
 };
 
-
   //تاكيد الحساب 
-  export const confirmEmail= async (req,res)=>{
-    const {token}=req.params;
-    const decoded = jwt.verify(token,process.env.CONFIRM_EMAIL_SIGNAL);
-    const user = await userModel.findOneAndUpdate({email:decoded.email},{confirmEmail:true});
-    return res.status(200).json({message:"success"});
-  };
+export const confirmEmail = async (req, res) => {
+  const { token } = req.params;
+  const decoded = jwt.verify(token, process.env.CONFIRM_EMAIL_SIGNAL);
+  
+  const user = await userModel.findOneAndUpdate({ email: decoded.email }, { confirmEmail: true });
+  const professional = await professionalModel.findOneAndUpdate({ email: decoded.email }, { confirmEmail: true });
+
+  if (user || professional) {
+    return res.status(200).json({ message: "success" });
+  }
+
+  return res.status(404).json({ message: "الحساب غير موجود" });
+};
 
   //تسجيل الدخول 
 export const login = async (req, res,next) => {

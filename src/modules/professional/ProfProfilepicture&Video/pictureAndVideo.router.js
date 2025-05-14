@@ -1,4 +1,4 @@
-import { Router } from 'express';
+/*import { Router } from 'express';
 import * as controller from './pictureAndVideo.controller.js';
 import { asyncHandler } from '../../../utils/catchError.js';
 import fileUpload, { fileValidation } from '../../../utils/multer.js';
@@ -11,7 +11,7 @@ router.put('/uploadProfilePicture/:id',fileUpload(fileValidation.image).single('
 // تحميل الفيديو
 router.put('/uploadVideo/:id',fileUpload(fileValidation.video).single('video'),asyncHandler(controller.uploadVideo));
 //عرض الصورة
-router.get('/getProfilePicture/:id',asyncHandler(controller.getProfilePicture));
+//router.get('/getProfilePicture/:id',asyncHandler(controller.getProfilePicture));
 //عرض الفيديو
-router.get('/getVideo/:id',asyncHandler(controller.getVideo));
-export default router;
+//router.get('/getVideo/:id',asyncHandler(controller.getVideo));
+export default router;*/

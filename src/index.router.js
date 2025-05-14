@@ -5,10 +5,11 @@ import GovernorateRouter from './modules/governorate/governorate.router.js';
 import SiteReviewRouter from './modules/SiteReview/SiteReview.router.js';
 import ReviewRouter from './modules/review/review.router.js';
 import ProfessionalRouter from './modules/professional/professional.router.js';
-import ProfessionalpictureAndVideoRouter from './modules/professional/ProfProfilepicture&Video/pictureAndVideo.router.js';
-import ProfessionalInformationRouter from './modules/professional/profInformation/profInformation.router.js';
-import ProfessionalWorksRouter from './modules/professional/ProfessionalWork/ProfessionalWork.router.js';
-import ProfessionalWorkingHoursRouter from './modules/professional/ProfessionalWorkingHours/ProfessionalWorkingHours.router.js';
+//import ProfessionalpictureAndVideoRouter from './modules/professional/ProfProfilepicture&Video/pictureAndVideo.router.js';
+//import ProfessionalInformationRouter from './modules/professional/profInformation/profInformation.router.js';
+//import ProfessionalWorksRouter from './modules/professional/ProfessionalWork/ProfessionalWork.router.js';
+//import ProfessionalWorkingHoursRouter from './modules/professional/ProfessionalWorkingHours/ProfessionalWorkingHours.router.js';
+import ProfessionalProfileRouter from './modules/professional/profile/ProfessionalProfile.router.js';
 
 const initApp = async(app,express)=>{
     app.use(express.json());
@@ -29,13 +30,15 @@ const initApp = async(app,express)=>{
     //المهني
     app.use('/Professional',ProfessionalRouter);
     //الصور والفيديوهات للمهنيين
-    app.use('/ProfessionalpictureAndVideo',ProfessionalpictureAndVideoRouter);
+    /*app.use('/ProfessionalpictureAndVideo',ProfessionalpictureAndVideoRouter);
     //معلومات المهني
     app.use('/ProfessionalInformation',ProfessionalInformationRouter);
      //اعمال المهني
     app.use('/ProfessionalWorks',ProfessionalWorksRouter);
      //ساعات عمل المهني
-    app.use('/ProfessionalWorkingHours',ProfessionalWorkingHoursRouter);
+    app.use('/ProfessionalWorkingHours',ProfessionalWorkingHoursRouter);*/
+     //البروفايل
+    app.use('/ProfessionalProfile',ProfessionalProfileRouter);
 
 
 //في حال دخل رابط خطا 

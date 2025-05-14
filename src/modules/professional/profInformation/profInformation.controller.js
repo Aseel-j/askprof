@@ -2,8 +2,6 @@ import professionalModel from '../../../../DB/models/professional.model.js';
 import jwt from "jsonwebtoken";
 import GovernorateModel from '../../../../DB/models/governorate.model.js';
 
-
-
 //تعديل بيانات البروفايل
 export const updateProfessionalProfile = async (req, res) => {
   const { token } = req.headers;
