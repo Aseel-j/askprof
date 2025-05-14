@@ -5,6 +5,7 @@ export const updateProfessionalProfileSchema = joi.object({
   bio: joi.string().max(500).optional(),
   governorate: joi.string().optional(), 
   city: joi.string().max(50).optional(),
+  professionField: joi.string().optional(), 
   anotheremail: joi.string().email().optional(),
   phoneNumber: joi.string().pattern(/^\+(970|972)[0-9]{7,10}$/).optional()
 });
