@@ -1,14 +1,13 @@
 import { Router } from 'express';
-import * as controller from '../ProfessionalWork/ProfessionalWork.controller.js';
-import * as controller1 from '../ProfessionalWorkingHours/ProfessionalWorkingHours.controller.js';
-import * as controller2 from '../profInformation/profInformation.controller.js';
-import * as controller3 from '../ProfProfilepicture&Video/pictureAndVideo.controller.js';
+import * as controller from './ProfessionalWork/ProfessionalWork.controller.js';
+import * as controller1 from './ProfessionalWorkingHours/ProfessionalWorkingHours.controller.js';
+import * as controller2 from './profInformation/profInformation.controller.js';
+import * as controller3 from './ProfProfilepicture&Video/pictureAndVideo.controller.js';
 import { asyncHandler } from '../../../utils/catchError.js';
 import validation from '../../../middleware/validation.js';
 import fileUpload, { fileValidation } from '../../../utils/multer.js';
-import {  updateDescriptionSchema, updateProfessionalProfileSchema } from '../profInformation/profInformation.validation.js';
-import { addProfessionalWorkSchema} from '../ProfessionalWork/ProfessionalWork.validation.js';
-
+import {  updateDescriptionSchema, updateProfessionalProfileSchema } from './profInformation/profInformation.validation.js';
+import { addProfessionalWorkSchema} from './ProfessionalWork/ProfessionalWork.validation.js';
 
 const router = Router();
 // تحميل الصورة الشخصية

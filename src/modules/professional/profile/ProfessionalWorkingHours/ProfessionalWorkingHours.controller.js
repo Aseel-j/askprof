@@ -1,6 +1,6 @@
 //import professionalModel from '../../../../DB/models/professional.model.js';
 import jwt from "jsonwebtoken";
-import workingHoursModel from '../../../../DB/models/workingHours.model.js';
+import workingHoursModel from '../../../../../DB/models/workingHours.model.js';
 import moment from "moment";
 
 

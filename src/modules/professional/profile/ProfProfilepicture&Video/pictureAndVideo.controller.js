@@ -1,6 +1,6 @@
-import professionalModel from '../../../../DB/models/professional.model.js';
+import professionalModel from '../../../../../DB/models/professional.model.js';
 import jwt from "jsonwebtoken";
-import cloudinary from '../../../utils/cloudinary.js';
+import cloudinary from '../../../../utils/cloudinary.js';
 
 //تحميل الصورة الشخصية
 export const uploadProfilePicture = async (req, res) => {

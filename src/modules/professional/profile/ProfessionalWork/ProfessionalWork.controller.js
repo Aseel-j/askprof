@@ -1,6 +1,6 @@
-import professionalModel from '../../../../DB/models/professional.model.js';
+import professionalModel from '../../../../../DB/models/professional.model.js';
 import jwt from "jsonwebtoken";
-import professionalWorkModel from '../../../../DB/models/professionalWork.model.js';
+import professionalWorkModel from '../../../../../DB/models/professional.model.js';
 
 //اضافة عمل
 export const addProfessionalWork = async (req, res) => {
