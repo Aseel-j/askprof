@@ -24,7 +24,7 @@ export const getProfessionals = async (req, res) => {
     professionField: professionField, // تم تغيير field إلى professionField
     isApproved: true,
     confirmEmail: true
-  }).select("_id username professionField bio governorate");
+  }).select("_id username professionField  governorate");
 
   // حساب التوتال للمهنيين الذين تطابقوا مع الشروط
   const totalProfessionals = professionals.length;
@@ -42,7 +42,6 @@ export const getProfessionals = async (req, res) => {
       _id: pro._id,
       username: pro.username, // عرض اسم المستخدم بدلاً من الاسم
       professionField: pro.professionField, // عرض مجال المهني
-      bio: pro.bio,
       governorate: pro.governorate.name,
       rating: averageRating // عرض فقط معدل التقييمات
     };
@@ -73,7 +72,7 @@ export const getProfessionalsByRating = async (req, res) => {
     isApproved: true,
     confirmEmail: true
   })
-    .select("_id username professionField bio governorate")
+    .select("_id username professionField  governorate")
     .populate("governorate", "name");
 
   const result = await Promise.all(professionals.map(async (pro) => {
@@ -85,7 +84,6 @@ export const getProfessionalsByRating = async (req, res) => {
       _id: pro._id,
       username: pro.username,
       professionField: pro.professionField,
-      bio: pro.bio,
       governorate: pro.governorate.name,
       rating: average,
     };
@@ -106,5 +104,41 @@ export const getProfessionalsByRating = async (req, res) => {
     message: "تم جلب المهنيين بنجاح",
     total: filteredResult.length,
     professionals: filteredResult
+  });
+};
+//البحث
+export const searchProfessionalsByName = async (req, res) => {
+  const { name } = req.query;
+
+  if (!name) {
+    return res.status(400).json({ message: "يرجى إدخال الاسم للبحث" });
+  }
+
+  const professionals = await professionalModel.find({
+    username: { $regex: name, $options: 'i' },
+    isApproved: true,
+    confirmEmail: true
+  })
+    .select('_id username professionField  governorate')
+    .populate('governorate', 'name');
+
+  const result = await Promise.all(professionals.map(async (pro) => {
+    const reviews = await ReviewModel.find({ professional: pro._id });
+    const total = reviews.reduce((sum, r) => sum + r.rating, 0);
+    const average = reviews.length ? (total / reviews.length) : null;
+
+    return {
+      _id: pro._id,
+      username: pro.username,
+      professionField: pro.professionField,
+      governorate: pro.governorate?.name || null,
+      averageRating: average ? average.toFixed(2) : null
+    };
+  }));
+
+  res.status(200).json({
+    message: "تم العثور على المهنيين بنجاح",
+    total: result.length,
+    professionals: result
   });
 };

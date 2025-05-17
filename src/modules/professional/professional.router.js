@@ -9,6 +9,9 @@ const router = Router();
 router.get('/getProfessionals',asyncHandler(controller.getProfessionals));
 //تطبيق الفلتر 
 router.get('/getProfessionalsByRating',asyncHandler(controller.getProfessionalsByRating));
+//البحث
+router.get('/searchProfessionalsByName',asyncHandler(controller.searchProfessionalsByName));
+
 
 
 export default router;
