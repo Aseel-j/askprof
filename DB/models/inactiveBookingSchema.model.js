@@ -40,5 +40,5 @@ const inactiveBookingSchema = new Schema(
   }
 );
 
-const InactiveBooking = mongoose.models.InactiveBooking ||model('InactiveBooking', inactiveBookingSchema);
-export default InactiveBooking;
+const InactiveBookingModel = mongoose.models.InactiveBooking ||model('InactiveBooking', inactiveBookingSchema);
+export default InactiveBookingModel;

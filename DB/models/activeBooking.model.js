@@ -7,6 +7,12 @@ const activeBookingSchema = new Schema(
       type: Date,
       required: true,
     },
+    //ساعة الحجز
+
+      bookingTime: {
+      type: String,
+      required: true,
+    },
 
     // المفتاح الأساسي للمهني (الذي يشير إلى المهني الذي تم الحجز لديه)
     professionalId: {
@@ -34,5 +40,5 @@ const activeBookingSchema = new Schema(
   }
 );
 
-const ActiveBooking = mongoose.models.ActiveBooking||model('ActiveBooking', activeBookingSchema);
-export default ActiveBooking;
+const ActiveBookingModel = mongoose.models.ActiveBooking||model('ActiveBooking', activeBookingSchema);
+export default ActiveBookingModel;
