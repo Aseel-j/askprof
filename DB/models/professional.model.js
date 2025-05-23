@@ -59,9 +59,15 @@ isApproved: {
      type: Boolean,
      default: false,
      },
+originalGovernorate: {
+    type: Schema.Types.ObjectId,
+    ref: "Governorate",
+    default: null,
+  },
 governorate: {
      type:Schema.Types.ObjectId,
-     ref: 'Governorate' 
+     ref: 'Governorate' ,
+     
      },
 city:{
      type: String,
@@ -83,5 +89,13 @@ professionField: {
 },{
     timestamps:true,
 });
+// إذا لم يتم تحديد المحافظة، اجعلها تساوي المحافظة الأصلية
+professionalSchema.pre("save", function (next) {
+  if (!this.governorate && this.originalGovernorate) {
+    this.governorate = this.originalGovernorate;
+  }
+  next();
+});
+
 const professionalModel=  mongoose.models.Professional|| model('Professional',professionalSchema);
 export default professionalModel;

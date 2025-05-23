@@ -6,17 +6,16 @@ import userModel from '../../../DB/models/user.model.js';
 import professionalModel from '../../../DB/models/professional.model.js';
 import InactiveBookingModel from '../../../DB/models/inactiveBookingSchema.model.js';
 import { sendEmail } from '../../utils/SendEmail.js';
-//حجز
+// انشاء حجز
 export const createBooking = async (req, res) => {
   const { token } = req.headers;
-  const { bookingDate, bookingTime, bookingDetails } = req.body;
+  const { bookingDate, startTime, endTime, bookingDetails } = req.body;
   const { professionalId } = req.params;
 
   if (!token) {
     return res.status(401).json({ message: "التوكن مفقود" });
   }
 
-  // تحقق من التوكن
   let decoded;
   try {
     decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
@@ -25,51 +24,82 @@ export const createBooking = async (req, res) => {
   }
   const userId = decoded.id;
 
-  // تحقق من البيانات
-  if (!bookingDate || !bookingTime || !bookingDetails) {
-    return res.status(400).json({ message: "يرجى إدخال جميع البيانات المطلوبة" });
-  }
-
-  // تحقق من صحة ObjectId
+  // تحقق من صحة معرف المهني
   if (!mongoose.Types.ObjectId.isValid(professionalId)) {
     return res.status(400).json({ message: "معرف المهني غير صالح" });
   }
   const profObjectId = new mongoose.Types.ObjectId(professionalId);
 
-  // تحليل التاريخ "dd-mm-yyyy"
+  // تحقق من صحة التاريخ "dd-mm-yyyy"
   const [day, month, year] = bookingDate.split("-").map(Number);
   if (
     isNaN(day) || isNaN(month) || isNaN(year) ||
-    day < 1 || day > 31 || month < 1 || month > 12 || year < 2000 || year > 2100
+    day < 1 || day > 31 ||
+    month < 1 || month > 12 ||
+    year < 2000 || year > 2100
   ) {
     return res.status(400).json({ message: "تاريخ غير صالح، تأكد من اليوم والشهر والسنة" });
   }
 
-  const startOfDay = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
-  const endOfDay = new Date(Date.UTC(year, month - 1, day, 23, 59, 59));
+  // تحويل التاريخ إلى كائن Date مضبوط بتوقيت UTC (منتصف الليل)
+  const bookingDateObj = new Date(Date.UTC(year, month - 1, day));
 
-  // البحث وتحديث الحالة في نفس الوقت
+  // تحقق من صحة الوقت (صيغة hh:mm)
+  const timeFormatValid = (timeStr) => /^\d{1,2}:\d{2}$/.test(timeStr);
+  if (!timeFormatValid(startTime) || !timeFormatValid(endTime)) {
+    return res.status(400).json({ message: "صيغة الوقت غير صحيحة. استخدم hh:mm" });
+  }
+
+  // تأكد أن وقت البدء قبل وقت الانتهاء
+  const timeToMinutes = (timeStr) => {
+    const [h, m] = timeStr.split(":").map(Number);
+    return h * 60 + m;
+  };
+  if (timeToMinutes(startTime) >= timeToMinutes(endTime)) {
+    return res.status(400).json({ message: "وقت البدء يجب أن يكون قبل وقت الانتهاء" });
+  }
+
+  // تحقق من صلاحية المستخدم
+  const user = await userModel.findById(userId).select("usertype");
+  if (!user || user.usertype !== "مستخدم") {
+    return res.status(403).json({ message: "صلاحيات غير كافية" });
+  }
+
+  // تحقق إذا يوجد حجز سابق لنفس المستخدم، المهني، والتاريخ والوقت
+  const existingBooking = await ActiveBookingModel.findOne({
+    userId,
+    professionalId: profObjectId,
+    bookingDate: bookingDateObj,
+    startTime,
+    endTime,
+  });
+
+  if (existingBooking) {
+    return res.status(409).json({ message: "لديك حجز مسبق في هذا الموعد" });
+  }
+
+  // تحقق وتحديث حالة الموعد في جدول المواعيد (workingHoursModel)
   const slot = await workingHoursModel.findOneAndUpdate(
     {
       professional: profObjectId,
-      date: { $gte: startOfDay, $lte: endOfDay },
-      time: bookingTime,
+      date: bookingDateObj,
+      startTime,
+      endTime,
       status: "متاح",
     },
-    {
-      $set: { status: "محجوز" },
-    },
-    { new: true } // يرجع النسخة الجديدة بعد التحديث
+    { $set: { status: "محجوز" } },
+    { new: true }
   );
 
   if (!slot) {
-    return res.status(404).json({ message: "هذا الموعد غير متاح أو غير موجود في جدول المواعيد" });
+    return res.status(404).json({ message: "هذا الموعد غير متاح أو محجوز" });
   }
 
-  // إنشاء الحجز
+  // إنشاء الحجز الجديد
   const newBooking = new ActiveBookingModel({
-    bookingDate: startOfDay,
-    bookingTime,
+    bookingDate: bookingDateObj,
+    startTime,
+    endTime,
     professionalId: profObjectId,
     userId,
     bookingDetails,
@@ -83,64 +113,6 @@ export const createBooking = async (req, res) => {
   });
 };
 //عرض الحجوزات 
-/*export const getBookings = async (req, res) => {
-  const { token } = req.headers;
-  if (!token) return res.status(401).json({ message: "التوكن مفقود" });
-
-  let decoded;
-  try {
-    decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
-  } catch {
-    return res.status(401).json({ message: "توكن غير صالح" });
-  }
-
-  const userId = decoded.id;
-
-  const user = await userModel.findById(userId);
-  if (!user) {
-    const professional = await professionalModel.findById(userId);
-    if (!professional)
-      return res.status(404).json({ message: "المستخدم غير موجود" });
-
-    if (professional.usertype !== "مهني")
-      return res.status(403).json({ message: "نوع المستخدم غير مسموح" });
-
-    // مهني - عرض الحجوزات مع بيانات المستخدمين
-    const bookings = await ActiveBookingModel.find({ professionalId: userId })
-      .populate("userId", "username email phoneNumber")
-      .lean();
-
-    const formatted = bookings.map(b => ({
-      userName: b.userId?.username || "غير معروف",
-      userEmail: b.userId?.email || "غير معروف",
-      userPhone: b.userId?.phoneNumber || "غير معروف",
-      bookingDetails: b.bookingDetails,
-      bookingDate: b.bookingDate,
-      bookingTime: b.bookingTime,
-    }));
-
-    return res.json({ bookings: formatted });
-  }
-
-  // مستخدم - عرض الحجوزات مع بيانات المهني
-  if (user.usertype !== "مستخدم")
-    return res.status(403).json({ message: "نوع المستخدم غير مسموح" });
-
-  const bookings = await ActiveBookingModel.find({ userId })
-    .populate("professionalId", "username professionField governorate")
-    .lean();
-
-  const formatted = bookings.map(b => ({
-    professionalName: b.professionalId?.username || "غير معروف",
-    professionField: b.professionalId?.professionField || "غير معروف",
-    governorate: b.professionalId?.governorate || "غير معروف",
-    bookingDetails: b.bookingDetails,
-    bookingDate: b.bookingDate,
-    bookingTime: b.bookingTime,
-  }));
-
-  return res.json({ bookings: formatted });
-};*/
 export const getBookings = async (req, res) => {
   const { token } = req.headers;
   if (!token) return res.status(401).json({ message: "التوكن مفقود" });
@@ -154,74 +126,69 @@ export const getBookings = async (req, res) => {
 
   const userId = decoded.id;
 
-  const user = await userModel.findById(userId);
-  if (!user) {
-    const professional = await professionalModel.findById(userId).populate({
-      path: "governorate",
-      select: "name", // إذا أردت استخدام اسم المحافظة في المهني نفسه
-    });
+  // جلب المستخدم والمهني بالتوازي
+  const [user, professional] = await Promise.all([
+    userModel.findById(userId).select("usertype"),
+    professionalModel.findById(userId).select("usertype governorate").populate("governorate", "name"),
+  ]);
 
-    if (!professional)
-      return res.status(404).json({ message: "المستخدم غير موجود" });
+  if (!user && !professional)
+    return res.status(404).json({ message: "المستخدم غير موجود" });
 
-    if (professional.usertype !== "مهني")
-      return res.status(403).json({ message: "نوع المستخدم غير مسموح" });
+  let bookings, formatted;
 
-    // مهني - عرض الحجوزات مع بيانات المستخدمين
-    const bookings = await ActiveBookingModel.find({ professionalId: userId })
+  //  إذا كان مهني
+  if (professional && professional.usertype === "مهني") {
+    bookings = await ActiveBookingModel.find({ professionalId: userId })
       .populate("userId", "username email phoneNumber")
+      .sort({ bookingDate: -1 }) // ترتيب حسب الأحدث
       .lean();
 
-    const formatted = bookings.map(b => ({
-      bookingId: b._id,
-      userName: b.userId?.username || "غير معروف",
-      userEmail: b.userId?.email || "غير معروف",
-      userPhone: b.userId?.phoneNumber || "غير معروف",
+    formatted = bookings.map(b => ({
+      bookingId: b._id.toString(),
+      userName: b.userId?.username ?? "غير معروف",
+      userEmail: b.userId?.email ?? "غير معروف",
+      userPhone: b.userId?.phoneNumber ?? "غير معروف",
       bookingDetails: b.bookingDetails,
       bookingDate: b.bookingDate,
-      bookingTime: b.bookingTime,
+      time: `${b.startTime}-${b.endTime}`,  // دمج الوقت
     }));
 
-    return res.json({ bookings: formatted });
-  }
+  //  إذا كان مستخدم
+  } else if (user && user.usertype === "مستخدم") {
+    bookings = await ActiveBookingModel.find({ userId })
+      .populate({
+        path: "professionalId",
+        select: "username professionField governorate",
+        populate: { path: "governorate", select: "name" },
+      })
+      .sort({ bookingDate: -1 }) // ترتيب حسب الأحدث
+      .lean();
 
-  // مستخدم - عرض الحجوزات مع بيانات المهني
-  if (user.usertype !== "مستخدم")
+    formatted = bookings.map(b => ({
+      bookingId: b._id.toString(),
+      professionalName: b.professionalId?.username ?? "غير معروف",
+      professionField: b.professionalId?.professionField ?? "غير معروف",
+      governorate: b.professionalId?.governorate?.name ?? "غير معروف",
+      bookingDetails: b.bookingDetails,
+      bookingDate: b.bookingDate,
+      time: `${b.startTime}-${b.endTime}`,  // دمج الوقت
+    }));
+
+  } else {
     return res.status(403).json({ message: "نوع المستخدم غير مسموح" });
-
-  const bookings = await ActiveBookingModel.find({ userId })
-    .populate({
-      path: "professionalId",
-      select: "username professionField governorate",
-      populate: {
-        path: "governorate",
-        select: "name"
-      }
-    })
-    .lean();
-
-  const formatted = bookings.map(b => ({
-    bookingId: b._id,
-    professionalName: b.professionalId?.username || "غير معروف",
-    professionField: b.professionalId?.professionField || "غير معروف",
-    governorate: b.professionalId?.governorate?.name || "غير معروف",
-    bookingDetails: b.bookingDetails,
-    bookingDate: b.bookingDate,
-    bookingTime: b.bookingTime,
-  }));
+  }
 
   return res.json({ bookings: formatted });
 };
-//الغاء الحجز 
-export const cancelBooking = async (req, res) => {
+// إلغاء الحجز
+export const cancelBooking = async (req, res, next) => {
   const { token } = req.headers;
   const { bookingId } = req.params;
   const { cancellationReason } = req.body;
 
-  if (!token) 
-    return res.status(401).json({ message: "التوكن مفقود" });
-
-  if (!cancellationReason || cancellationReason.trim() === "")
+  if (!token) return res.status(401).json({ message: "التوكن مفقود" });
+  if (!cancellationReason || !cancellationReason.trim())
     return res.status(400).json({ message: "يرجى إدخال سبب الإلغاء" });
 
   let decoded;
@@ -231,88 +198,112 @@ export const cancelBooking = async (req, res) => {
     return res.status(401).json({ message: "توكن غير صالح" });
   }
 
+  if (!mongoose.Types.ObjectId.isValid(bookingId))
+    return res.status(400).json({ message: "معرف الحجز غير صالح" });
+
+  const activeBooking = await ActiveBookingModel.findById(bookingId)
+    .populate("userId", "username email")
+    .populate("professionalId", "username email")
+    .lean();
+
+  if (!activeBooking)
+    return res.status(404).json({ message: "الحجز غير موجود" });
+
   const userId = decoded.id;
 
-  if (!mongoose.Types.ObjectId.isValid(bookingId)) {
-    return res.status(400).json({ message: "معرف الحجز غير صالح" });
-  }
-
-  const activeBooking = await ActiveBookingModel.findById(bookingId);
-  if (!activeBooking) {
-    return res.status(404).json({ message: "الحجز غير موجود" });
-  }
-
   if (
-    activeBooking.userId.toString() !== userId &&
-    activeBooking.professionalId.toString() !== userId
+    activeBooking.userId._id.toString() !== userId &&
+    activeBooking.professionalId._id.toString() !== userId
   ) {
     return res.status(403).json({ message: "غير مخول لإلغاء هذا الحجز" });
   }
 
-  // إنشاء نسخة ملغاة من الحجز
-  const cancelledBooking = new InactiveBookingModel({
+  // إنشاء نسخة الحجز الملغى وحفظها
+  const cancelledBooking = await InactiveBookingModel.create({
     bookingDate: activeBooking.bookingDate,
-    professionalId: activeBooking.professionalId,
-    userId: activeBooking.userId,
+    startTime: activeBooking.startTime,
+    endTime: activeBooking.endTime,
+    professionalId: activeBooking.professionalId._id,
+    userId: activeBooking.userId._id,
     bookingDetails: activeBooking.bookingDetails,
     cancellationReason,
   });
 
-  await cancelledBooking.save();
+  // ضبط بداية اليوم
+  const startOfDay = new Date(activeBooking.bookingDate);
+  startOfDay.setUTCHours(0, 0, 0, 0);
 
-  // تحديث حالة الموعد إلى متاح
-  await workingHoursModel.findOneAndUpdate(
+  // تحديث الموعد إلى متاح
+  const updatedSlot = await workingHoursModel.findOneAndUpdate(
     {
-      professional: activeBooking.professionalId,
-      date: activeBooking.bookingDate,
-      time: activeBooking.bookingTime,
+      professional: activeBooking.professionalId._id,
+      date: startOfDay,
+      startTime: activeBooking.startTime,
+      endTime: activeBooking.endTime,
     },
-    { status: "متاح" }
+    { status: "متاح" },
+    { new: true }
   );
 
-  // حذف الحجز النشط
-  await activeBooking.deleteOne();
-
-  // جلب بيانات المهني والمستخدم للإرسال بالبريد
-  const professional = await professionalModel.findById(cancelledBooking.professionalId);
-  const user = await userModel.findById(cancelledBooking.userId);
-
-  // إرسال البريد للطرف الآخر 
-  if (userId === cancelledBooking.userId.toString()) {
-    // من ألغى الحجز هو المستخدم => نرسل للمهني 
-    const htmlProfessional = `
-      <div>
-        <h1>مرحبا ${professional.username}</h1>
-        <h2>تم إلغاء حجز معك</h2>
-        <p>تم إلغاء الحجز مع المستخدم <strong>${user.username}</strong> بتاريخ 
-        ${cancelledBooking.bookingDate.toLocaleDateString()} والوقت ${activeBooking.bookingTime}.</p>
-        <p>سبب الإلغاء: ${cancellationReason}</p>
-      </div>`;
-    await sendEmail(professional.email, "تم إلغاء حجز معك", htmlProfessional);
-  } else if (userId === cancelledBooking.professionalId.toString()) {
-    // من ألغى الحجز هو المهني => نرسل للمستخدم 
-    const htmlUser = `
-      <div>
-        <h1>مرحبا ${user.username}</h1>
-        <h2> تم إلغاء حجزك</h2>
-        <p> تم إلغاء الحجز مع <strong>${professional.username}</strong> بتاريخ ${cancelledBooking.bookingDate.toLocaleDateString()} والوقت ${activeBooking.bookingTime}.</p>
-        <p>سبب الإلغاء: ${cancellationReason}</p>
-      </div>`;
-    await sendEmail(user.email, "تم إلغاء حجزك", htmlUser);
+  if (!updatedSlot) {
+    console.warn("لم يتم العثور على الموعد لتحديثه إلى متاح");
   }
 
-  return res.status(200).json({message: "تم إلغاء الحجز، إعادة حالة الموعد للإتاحة، وإرسال إشعار بالإلغاء للطرف الآخر فقط",cancelledBooking});
+  // حذف الحجز النشط
+  await ActiveBookingModel.deleteOne({ _id: bookingId });
+
+  res.status(200).json({
+    message:
+      "تم إلغاء الحجز، إعادة حالة الموعد للإتاحة، وإرسال ايميل بالإلغاء للطرف الآخر فقط",
+    cancelledBooking,
+  });
+
+  // إرسال الإيميلات بالخلفية بدون انتظار الرد
+  const timeText = `${activeBooking.startTime} - ${activeBooking.endTime}`;
+  const dateText = new Date(activeBooking.bookingDate).toLocaleDateString("ar-EG");
+
+  setImmediate(async () => {
+    try {
+      if (userId === cancelledBooking.userId.toString()) {
+        const htmlProfessional = `
+          <div>
+            <h1>مرحبًا ${activeBooking.professionalId.username}</h1>
+            <h2> تم إلغاء حجز معك</h2>
+            <p> تم إلغاء الحجز مع المستخدم <strong> ${activeBooking.userId.username} </strong> بتاريخ ${dateText} والوقت ${timeText}.</p>
+            <p> سبب الإلغاء: ${cancellationReason}</p>
+          </div>`;
+        await sendEmail(
+          activeBooking.professionalId.email,
+          " تم إلغاء حجز معك",
+          htmlProfessional
+        );
+      } else if (userId === cancelledBooking.professionalId.toString()) {
+        const htmlUser = `
+          <div>
+            <h1> مرحبًا ${activeBooking.userId.username}</h1>
+            <h2> تم إلغاء حجزك</h2>
+            <p> تم إلغاء الحجز مع <strong>  ${activeBooking.professionalId.username}  </strong> بتاريخ ${dateText} والوقت ${timeText}.</p>
+            <p> سبب الإلغاء: ${cancellationReason}</p>
+          </div>`;
+        await sendEmail(
+          activeBooking.userId.email,
+          " تم إلغاء حجزك",
+          htmlUser
+        );
+      }
+    } catch (err) {
+      console.error("فشل إرسال البريد:", err);
+    }
+  });
 };
 //عرض الحجوزات الملغية
 export const getDeletedBookings = async (req, res) => {
   const { token } = req.headers;
 
-  // التحقق من وجود التوكن
   if (!token) return res.status(401).json({ message: "التوكن مفقود" });
 
   let decoded;
   try {
-    // فك التوكن لاستخراج معلومات المستخدم
     decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
   } catch {
     return res.status(401).json({ message: "توكن غير صالح" });
@@ -320,69 +311,59 @@ export const getDeletedBookings = async (req, res) => {
 
   const userId = decoded.id;
 
-  // محاولة إيجاد المستخدم
-  const user = await userModel.findById(userId);
+  // جلب المستخدم والمهني بالتوازي لتقليل الزمن
+  const [user, professional] = await Promise.all([
+    userModel.findById(userId).select("usertype"),
+    professionalModel.findById(userId).select("usertype governorate").populate("governorate", "name"),
+  ]);
 
-  // إذا لم يكن مستخدم عادي، افحص إذا كان مهني
-  if (!user) {
-    const professional = await professionalModel.findById(userId).populate({
-      path: "governorate",
-      select: "name", // لجلب اسم المحافظة بدلاً من الـ ObjectId
-    });
+  // تحقق من وجود المستخدم أو المهني
+  if (!user && !professional)
+    return res.status(404).json({ message: "المستخدم غير موجود" });
 
-    // إذا لم يتم العثور على المهني
-    if (!professional)
-      return res.status(404).json({ message: "المستخدم غير موجود" });
+  let bookings, formatted;
 
-    // إذا لم يكن من نوع مهني
-    if (professional.usertype !== "مهني")
-      return res.status(403).json({ message: "نوع المستخدم غير مسموح" });
-
-    // جلب الحجوزات المحذوفة المرتبطة بالمهني
-    const bookings = await InactiveBookingModel.find({ professionalId: userId })
-      .populate("userId", "username email phoneNumber") // جلب بيانات المستخدم
+  // إذا كان مهني
+  if (professional && professional.usertype === "مهني") {
+    bookings = await InactiveBookingModel.find({ professionalId: userId })
+      .populate("userId", "username email phoneNumber")
       .lean();
 
-    // تنسيق البيانات لإرجاعها إلى الواجهة الأمامية
-    const formatted = bookings.map(b => ({
+    formatted = bookings.map(b => ({
       bookingId: b._id,
       userName: b.userId?.username || "غير معروف",
       userEmail: b.userId?.email || "غير معروف",
       userPhone: b.userId?.phoneNumber || "غير معروف",
       bookingDetails: b.bookingDetails,
-      bookingDate: b.bookingDate,
+      bookingDate: b.bookingDate, // التاريخ كما هو مخزن
+       time: `${b.startTime}-${b.endTime}`,
       cancellationReason: b.cancellationReason || "غير محدد",
     }));
 
-    return res.json({ deletedBookings: formatted });
-  }
+  // إذا كان مستخدم عادي
+  } else if (user && user.usertype === "مستخدم") {
+    bookings = await InactiveBookingModel.find({ userId })
+      .populate({
+        path: "professionalId",
+        select: "username professionField governorate",
+        populate: { path: "governorate", select: "name" },
+      })
+      .lean();
 
-  // إذا كان مستخدم عادي، تأكد من نوعه
-  if (user.usertype !== "مستخدم")
+    formatted = bookings.map(b => ({
+      bookingId: b._id,
+      professionalName: b.professionalId?.username || "غير معروف",
+      professionField: b.professionalId?.professionField || "غير معروف",
+      governorate: b.professionalId?.governorate?.name || "غير معروف",
+      bookingDetails: b.bookingDetails,
+      bookingDate: b.bookingDate, // التاريخ كما هو مخزن
+       time: `${b.startTime}-${b.endTime}`,
+      cancellationReason: b.cancellationReason || "غير محدد",
+    }));
+
+  } else {
     return res.status(403).json({ message: "نوع المستخدم غير مسموح" });
-
-  // جلب الحجوزات المحذوفة المرتبطة بالمستخدم
-  const bookings = await InactiveBookingModel.find({ userId })
-    .populate({
-      path: "professionalId",
-      select: "username professionField governorate", // جلب بيانات المهني
-      populate: {
-        path: "governorate",
-        select: "name", // جلب اسم المحافظة
-      },
-    })
-    .lean();
-
-  // تنسيق البيانات
-  const formatted = bookings.map(b => ({
-    bookingId: b._id,
-    professionalName: b.professionalId?.username || "غير معروف",
-    professionField: b.professionalId?.professionField || "غير معروف",
-    governorate: b.professionalId?.governorate?.name || "غير معروف",
-    bookingDetails: b.bookingDetails,
-    bookingDate: b.bookingDate,
-    cancellationReason: b.cancellationReason || "غير محدد",
-  }));
+  }
 
   return res.json({ deletedBookings: formatted });
 };

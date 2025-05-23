@@ -7,7 +7,7 @@ import { customAlphabet  } from 'nanoid'
 import { sendEmail } from '../../utils/SendEmail.js';
 
 //انشاء الحساب
-export const register = async (req, res, next) => {
+/*export const register = async (req, res, next) => {
   const {
     username,
     email,
@@ -63,6 +63,90 @@ export const register = async (req, res, next) => {
       gender,
       usertype,
       governorate: governorateId,
+      professionField,
+      isApproved: false,
+      confirmEmail: false
+    });
+
+    await newProfessional.save();
+    await sendEmail(email, "تأكيد الحساب", html);
+    return res.status(201).json({ message: "تم انشاء الحساب المهني بنجاح، بانتظار موافقة الأدمن" });
+
+  } else {
+    const newUser = new userModel({
+      username,
+      email,
+      phoneNumber,
+      password: hashedPassword,
+      birthdate,
+      gender,
+      usertype,
+      confirmEmail: false
+    });
+
+    await newUser.save();
+    await sendEmail(email, "تأكيد الحساب", html);
+    return res.status(201).json({ message: "تم إنشاء حساب المستخدم بنجاح" });
+  }
+};*/
+// إنشاء الحساب
+export const register = async (req, res, next) => {
+  const {
+    username,
+    email,
+    phoneNumber,
+    password,
+    birthdate,
+    gender,
+    usertype,
+    originalGovernorate, 
+    professionField 
+  } = req.body;
+
+  if (!["مستخدم", "مهني"].includes(usertype)) {
+    return res.status(400).json({ message: "نوع المستخدم غير صالح" });
+  }
+
+  const existingUser = await userModel.findOne({ email });
+  const existingProfessional = await professionalModel.findOne({ email });
+
+  if (existingUser || existingProfessional) {
+    return res.status(409).json({ message: "البريد الإلكتروني مستخدم مسبقًا" });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, parseInt(process.env.SALT_ROUND));
+
+  let governorateId = null;
+  if (usertype === "مهني" && originalGovernorate) {
+    const governorateExists = await governorateModel.findOne({ name: originalGovernorate });
+    if (!governorateExists) {
+      return res.status(400).json({ message: "المحافظة غير موجودة" });
+    }
+    governorateId = governorateExists._id;
+  }
+
+  const token = jwt.sign({ email }, process.env.CONFIRM_EMAIL_SIGNAL);
+  const html = `
+    <div>
+      <h1>مرحبا ${username}</h1>
+      <h2>تأكيد الحساب</h2>
+      <a href="${req.protocol}://${req.headers.host}/auth/confirmEmail/${token}">confirm your email</a>
+    </div>`;
+
+  if (usertype === "مهني") {
+    if (!professionField) {
+      return res.status(400).json({ message: "يرجى إدخال مجال المهني" });
+    }
+
+    const newProfessional = new professionalModel({
+      username,
+      email,
+      phoneNumber,
+      password: hashedPassword,
+      birthdate,
+      gender,
+      usertype,
+      originalGovernorate: governorateId, 
       professionField,
       isApproved: false,
       confirmEmail: false

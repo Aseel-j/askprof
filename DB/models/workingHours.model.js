@@ -15,10 +15,17 @@ const workingHoursSchema = new Schema({
     type: Date,
     required: true
   },
-  time: {
-    type: String,
-    required: true
-  },
+   // وقت بدء الحجز
+    startTime: {
+      type: String, 
+      required: true,
+    },
+
+    // وقت انتهاء الحجز
+    endTime: {
+      type: String, 
+      required: true,
+    },
   status: {
     type: String,
     enum: ["متاح", "محجوز"],

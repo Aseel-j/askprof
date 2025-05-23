@@ -7,7 +7,17 @@ const inactiveBookingSchema = new Schema(
       type: Date,
       required: true,
     },
+ // وقت بدء الحجز
+    startTime: {
+      type: String, 
+      required: true,
+    },
 
+    // وقت انتهاء الحجز
+    endTime: {
+      type: String, 
+      required: true,
+    },
     // المفتاح الأساسي للمهني (الذي يشير إلى المهني الذي تم الحجز لديه)
     professionalId: {
       type: Schema.Types.ObjectId,

@@ -7,10 +7,15 @@ const activeBookingSchema = new Schema(
       type: Date,
       required: true,
     },
-    //ساعة الحجز
+    // وقت بدء الحجز
+    startTime: {
+      type: String, 
+      required: true,
+    },
 
-      bookingTime: {
-      type: String,
+    // وقت انتهاء الحجز
+    endTime: {
+      type: String, 
       required: true,
     },
 
