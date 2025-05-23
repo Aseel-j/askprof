@@ -11,7 +11,8 @@ router.post('/createBooking/:professionalId',asyncHandler(controller.createBooki
 router.get('/getBookings',asyncHandler(controller.getBookings));
 //الغاء الحجز 
 router.delete('/cancelBooking/:bookingId', asyncHandler(controller.cancelBooking));
-
+// عرض الحجوزات الملغية
+router.get('/getDeletedBookings',asyncHandler(controller.getDeletedBookings));
 
 
 

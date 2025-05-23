@@ -38,28 +38,6 @@ export const addSiteReview = async (req, res) => {
 };
 
 //ارجاع الاراء 
-/*export const getSiteReviews = async (req, res, next) => {
-    // استخراج skip و limit من الاستعلام (query)
-    const skip = parseInt(req.query.skip) || 0;
-    const limit = parseInt(req.query.limit) || 10;
-
-    // جلب التقييمات مع المستخدم المرتبط بها (اختياريًا populate)
-    const reviews = await SiteReviewModel.find()
-      .populate("user", "username") // إذا كنت تريد عرض اسم المستخدم
-      .sort({ createdAt: -1 }) // الترتيب من الأحدث
-      .skip(skip)
-      .limit(limit);
-
-    // حساب العدد الكلي للتقييمات
-    const totalReviews = await SiteReviewModel.countDocuments();
-
-    res.status(200).json({
-      total: totalReviews,
-      count: reviews.length,
-      reviews,
-    });
-  
-};*/
 export const getSiteReviews = async (req, res) => {
     // إحضار كل التقييمات مع اسم المستخدم
     const allReviews = await SiteReviewModel.find()

@@ -50,8 +50,6 @@ export const getProfessionalWorks = async (req, res) => {
     const professional = await professionalModel.findById(id);
     if (!professional) {
       return res.status(404).json({ message: "المهني غير موجود" });
-
-      //return next(new AppError("المهني غير موجود", 404));
     }
 
     // جلب الأعمال المرتبطة بهذا المهني
@@ -72,16 +70,12 @@ export const deleteWork = async (req, res, next) => {
 
     if (!professional) {
      return res.status(404).json({ message: "المهني غير موجود" });
-
-      //return next(new AppError("المهني غير موجود", 404));
     }
 
     // العثور على العمل بناءً على ID المهني و ID العمل
     const work = await professionalWorkModel.findOne({ _id: workId, professional: decoded.id });
     if (!work) {
       return res.status(404).json({ message: "العمل غير موجود أو ليس لديك صلاحية لحذفه" });
-
-     // return next(new AppError("العمل غير موجود أو ليس لديك صلاحية لحذفه", 404));
     }
 
     // حذف العمل
