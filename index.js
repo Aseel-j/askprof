@@ -1,4 +1,4 @@
-/*import express from 'express';
+import express from 'express';
 import initApp from './src/index.router.js';
 import 'dotenv/config';
 import ActiveBookingModel from './DB/models/activeBooking.model.js';
@@ -17,8 +17,8 @@ initApp(app,express);
 
 app.listen(PORT,()=>{
     console.log(`server is running ... ${PORT}`);
-}) */
-import express from 'express';
+}) 
+/*import express from 'express';
 import initApp from './src/index.router.js';
 import 'dotenv/config';
 import mongoose from 'mongoose';
@@ -63,4 +63,4 @@ async function startServer() {
 }
 
 // Call startServer to run everything
-startServer();
+startServer();*/

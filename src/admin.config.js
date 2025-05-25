@@ -1,4 +1,4 @@
-import AdminJS from "adminjs";
+/*import AdminJS from "adminjs";
 import AdminJSExpress from "@adminjs/express";
 import AdminJSMongoose from "@adminjs/mongoose";
 
@@ -185,7 +185,7 @@ const router = AdminJSExpress.buildAuthenticatedRouter(admin, {
 
 export { admin, router };*/
 
-const admin = new AdminJS(adminOptions);
+/*const admin = new AdminJS(adminOptions);
 
 const router = AdminJSExpress.buildAuthenticatedRouter(admin, {
   authenticate: async (email, password) => {
@@ -202,4 +202,4 @@ const router = AdminJSExpress.buildAuthenticatedRouter(admin, {
   cookiePassword: process.env.ADMIN_COOKIE_PASS || "secret-cookie-password",
 });
 
-export { admin, router };
+export { admin, router }; */
