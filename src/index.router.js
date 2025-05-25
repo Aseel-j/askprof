@@ -7,7 +7,7 @@ import ReviewRouter from './modules/review/review.router.js';
 import ProfessionalRouter from './modules/professional/professional.router.js';
 import ProfessionalProfileRouter from './modules/professional/profile/ProfessionalProfile.router.js';
 import BookingRouter from './modules/Booking/Booking.router.js';
-import {router as adminRouter} from './admin.config.js'
+import { adminRouter} from './admin.config.js'
 
 const initApp = async(app,express)=>{
     app.use(express.json());

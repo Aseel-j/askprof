@@ -1,607 +1,135 @@
-import AdminJS from "adminjs";
-import AdminJSExpress from "@adminjs/express";
-import { Database, Resource } from "@adminjs/mongoose";
-import bcrypt from "bcrypt";
+import AdminJS from 'adminjs'
+import * as AdminJSMongoose from '@adminjs/mongoose'
+import AdminJSExpress from '@adminjs/express'
 
-import professionalModel from "../DB/models/professional.model.js";
-import DeletedProfessionalModel from "../DB/models/deletedProfessional.model.js";
-import GovernorateModel from "../DB/models/governorate.model.js";
-import ReviewModel from "../DB/models/review.model.js";
-import AdminModel from "../DB/models/admin.model.js";
+import Professional from '../DB/models/professional.model.js'
+import DeletedProfessional from '../DB/models/deletedProfessional.model.js'
+import { sendEmail } from './utils/SendEmail.js'
 
-import { sendEmail } from "../src/utils/SendEmail.js";
+AdminJS.registerAdapter(AdminJSMongoose)
 
-AdminJS.registerAdapter({ Database, Resource });
-
-const adminOptions = {
-  resources: [
-    {
-      resource: professionalModel,
-      options: {
-        properties: {
-          password: { isVisible: false },
-          governorate: { reference: "Governorate" },
-          originalGovernorate: { reference: "Governorate" },
-        },
-        actions: {
-          approve: {
-            actionType: "record",
-            icon: "Check",
-            handler: async (req, res, context) => {
-              const record = context.record;
-              if (!record) {
-                return {
-                  record: null,
-                  notice: { message: "لم يتم العثور على المهني", type: "error" },
-                };
-              }
-
-              await record.update({ isApproved: true });
-
-              await sendEmail(
-                record.params.email,
-                "تم قبول حسابك في Ask Professional",
-                `<h1>مرحبًا ${record.params.username}</h1>
-                 <p>لقد تم قبول حسابك كمحترف في المنصة. شكرًا لانضمامك إلينا!</p>`
-              );
-
-              return {
-                record: record.toJSON(),
-                notice: { message: "تم قبول المهني وإرسال إيميل إشعار", type: "success" },
-              };
-            },
-            label: "قبول المهني",
-            showInDrawer: false,
-          },
-
-          deleteAndArchive: {
-            actionType: "record",
-            icon: "Trash",
-            handler: async (req, res, context) => {
-              const record = context.record;
-              if (!record) {
-                return { notice: { message: "لم يتم العثور على المهني", type: "error" } };
-              }
-
-              const data = record.params;
-
-              await DeletedProfessionalModel.create({
-                username: data.username,
-                email: data.email,
-                anotheremail: data.anotheremail,
-                phoneNumber: data.phoneNumber,
-                professionField: data.professionField,
-                governorate: data.governorate,
-              });
-
-              await record.delete();
-
-              await sendEmail(
-                data.email,
-                "تم حذف حسابك من Ask Professional",
-                `<h1>مرحبًا ${data.username}</h1>
-                 <p>تم حذف حسابك من المنصة لأسباب إدارية. إذا كنت تعتقد أن هذا القرار خاطئ، يرجى التواصل معنا.</p>`
-              );
-
-              return {
-                notice: { message: "تم حذف المهني وأرسلت إيميل إشعار", type: "success" },
-              };
-            },
-            label: "حذف وأرشفة",
-            showInDrawer: false,
-          },
-        },
-      },
-    },
-
-    {
-      resource: DeletedProfessionalModel,
-      options: {
-        properties: {
-          governorate: { reference: "Governorate" },
-        },
-        actions: {
-          restore: {
-            actionType: "record",
-            icon: "Undo",
-            handler: async (req, res, context) => {
-              const record = context.record;
-              if (!record) {
-                return { notice: { message: "لم يتم العثور على المهني المحذوف", type: "error" } };
-              }
-
-              const data = record.params;
-
-              const hashedPassword = await bcrypt.hash("DefaultPassword123", 10);
-
-              await professionalModel.create({
-                username: data.username,
-                email: data.email,
-                anotheremail: data.anotheremail,
-                phoneNumber: data.phoneNumber,
-                professionField: data.professionField,
-                governorate: data.governorate,
-                isApproved: false,
-                password: hashedPassword,
-                birthdate: new Date(),
-                gender: "ذكر",
-                usertype: "مهني",
-              });
-
-              await record.delete();
-
-              await sendEmail(
-                data.email,
-                "تم استرجاع حسابك في Ask Professional",
-                `<h1>مرحبًا ${data.username}</h1>
-                 <p>تم استرجاع حسابك في المنصة. يمكنك الآن تسجيل الدخول واستخدام خدماتنا.</p>`
-              );
-
-              return {
-                notice: { message: "تم استرجاع المهني وإرسال إشعار عبر الإيميل", type: "success" },
-              };
-            },
-            label: "استرجاع المهني",
-            showInDrawer: false,
-          },
-        },
-      },
-    },
-
-    {
-      resource: GovernorateModel,
-      options: {
-        properties: {
-          name: { isTitle: true },
-        },
-      },
-    },
-
-    {
-      resource: ReviewModel,
-      options: {
-        properties: {
-          professional: { reference: "Professional" },
-          user: { reference: "User" },
-          rating: { type: "number" },
-          comment: { type: "textarea" },
-        },
-      },
-    },
-  ],
-
-  rootPath: "/admin",
-};
-
-const admin = new AdminJS(adminOptions);
-
-const router = AdminJSExpress.buildAuthenticatedRouter(
-  admin,
-  {
-    authenticate: async (email, password) => {
-      const adminUser = await AdminModel.findOne({ email });
-      if (!adminUser) return null;
-
-      const matched = bcrypt.compareSync(password, adminUser.password);
-      if (matched) {
-        return { email: adminUser.email, name: adminUser.name };
-      }
-      return null;
-    },
-    cookieName: "adminjs",
-    cookiePassword: process.env.ADMIN_COOKIE_PASS || "secret-cookie-password",
-  },
-  null,
-  {
-    resave: false,
-    saveUninitialized: false,
-  }
-);
-
-export { admin, router };
-
-/*import AdminJS from "adminjs";
-import AdminJSExpress from "@adminjs/express";
-import { Database, Resource } from "@adminjs/mongoose";
-import bcrypt from "bcrypt";
-
-import professionalModel from "../DB/models/professional.model.js";
-import DeletedProfessionalModel from "../DB/models/deletedProfessional.model.js";
-import GovernorateModel from "../DB/models/governorate.model.js";
-import ReviewModel from "../DB/models/review.model.js";
-import AdminModel from "../DB/models/admin.model.js";
-
-import { sendEmail } from "../src/utils/SendEmail.js";
-
-AdminJS.registerAdapter({ Database, Resource });
-
-const adminOptions = {
-  resources: [
-    {
-      resource: professionalModel,
-      options: {
-        properties: {
-          password: { isVisible: false },
-          governorate: { reference: "Governorate" },
-          originalGovernorate: { reference: "Governorate" },
-        },
-        actions: {
-          approve: {
-            actionType: "record",
-            icon: "Check",
-            handler: async (req, res, context) => {
-              const record = context.record;
-              if (!record) {
-                return {
-                  record: null,
-                  notice: { message: "لم يتم العثور على المهني", type: "error" },
-                };
-              }
-
-              await record.update({ isApproved: true });
-
-              await sendEmail(
-                record.params.email,
-                "تم قبول حسابك في Ask Professional",
-                `<h1>مرحبًا ${record.params.username}</h1><p>لقد تم قبول حسابك كمحترف في المنصة. شكرًا لانضمامك إلينا!</p>`
-              );
-
-              return {
-                record: record.toJSON(),
-                notice: { message: "تم قبول المهني وإرسال إيميل إشعار", type: "success" },
-              };
-            },
-            label: "قبول المهني",
-            showInDrawer: false,
-          },
-
-          deleteAndArchive: {
-            actionType: "record",
-            icon: "Trash",
-            handler: async (req, res, context) => {
-              const record = context.record;
-              if (!record) {
-                return { notice: { message: "لم يتم العثور على المهني", type: "error" } };
-              }
-
-              const data = record.params;
-
-              await DeletedProfessionalModel.create({
-                username: data.username,
-                email: data.email,
-                anotheremail: data.anotheremail,
-                phoneNumber: data.phoneNumber,
-                professionField: data.professionField,
-                governorate: data.governorate,
-              });
-
-              await record.delete();
-
-              await sendEmail(
-                data.email,
-                "تم حذف حسابك من Ask Professional",
-                `<h1>مرحبًا ${data.username}</h1><p>تم حذف حسابك من المنصة لأسباب إدارية. إذا كنت تعتقد أن هذا خطأ، يرجى التواصل معنا.</p>`
-              );
-
-              return {
-                notice: { message: "تم حذف المهني وأرسلت إيميل إشعار", type: "success" },
-              };
-            },
-            label: "حذف وأرشفة",
-            showInDrawer: false,
-          },
-        },
-      },
-    },
-
-    {
-      resource: DeletedProfessionalModel,
-      options: {
-        properties: {
-          governorate: { reference: "Governorate" },
-        },
-        actions: {
-          restore: {
-            actionType: "record",
-            icon: "Undo",
-            handler: async (req, res, context) => {
-              const record = context.record;
-              if (!record) {
-                return { notice: { message: "لم يتم العثور على المهني المحذوف", type: "error" } };
-              }
-
-              const data = record.params;
-
-              await professionalModel.create({
-                username: data.username,
-                email: data.email,
-                anotheremail: data.anotheremail,
-                phoneNumber: data.phoneNumber,
-                professionField: data.professionField,
-                governorate: data.governorate,
-                isApproved: false,
-                password: "hashedOrDefaultPassword", // عدل حسب نظامك، يجب أن يكون كلمة مرور مشفرة فعلياً
-                birthdate: new Date(), // عدل حسب الحاجة
-                gender: "ذكر", // عدل حسب الحاجة
-                usertype: "مهني",
-              });
-
-              await record.delete();
-
-              await sendEmail(
-                data.email,
-                "تم استرجاع حسابك في Ask Professional",
-                `<h1>مرحبًا ${data.username}</h1><p>تم استرجاع حسابك في المنصة. يمكنك الآن تسجيل الدخول واستخدام خدماتنا.</p>`
-              );
-
-              return {
-                notice: { message: "تم استرجاع المهني وإرسال إشعار عبر الإيميل", type: "success" },
-              };
-            },
-            label: "استرجاع المهني",
-            showInDrawer: false,
-          },
-        },
-      },
-    },
-
-    {
-      resource: GovernorateModel,
-      options: {
-        properties: {
-          name: { isTitle: true },
-        },
-      },
-    },
-
-    {
-      resource: ReviewModel,
-      options: {
-        properties: {
-          professional: { reference: "Professional" },
-          user: { reference: "User" },
-          rating: { type: "number" },
-          comment: { type: "textarea" },
-        },
-      },
-    },
-  ],
-
-  rootPath: "/admin",
-};
-
-const admin = new AdminJS(adminOptions);
-
-const router = AdminJSExpress.buildAuthenticatedRouter(
-  admin,
-  {
-    authenticate: async (email, password) => {
-      const adminUser = await AdminModel.findOne({ email });
-      if (!adminUser) return null;
-
-      // هنا نستخدم bcrypt للمقارنة بدون دالة في السكيمة
-      const matched = await bcrypt.compare(password, adminUser.password);
-      if (matched) {
-        return { email: adminUser.email, name: adminUser.name };
-      }
-      return null;
-    },
-    cookieName: "adminjs",
-    cookiePassword: process.env.ADMIN_COOKIE_PASS || "secret-cookie-password",
-  },
-  null,
-  {
-    resave: false,
-    saveUninitialized: false,
-  }
-);
-
-export { admin, router };
-*/
-
-/*import AdminJS from "adminjs";
-import AdminJSExpress from "@adminjs/express";
-import AdminJSMongoose from "@adminjs/mongoose";
-
-import Professional from "../DB/models/professional.model.js";
-import DeletedProfessional from "../DB/models/deletedProfessional.model.js";
-import Governorate from "../DB/models/governorate.model.js";
-import Review from "../DB/models/review.model.js";
-
-import { sendEmail } from "../src/utils/SendEmail.js";
-
-AdminJS.registerAdapter(AdminJSMongoose);
-
-const adminOptions = {
+const adminJs = new AdminJS({
+  databases: [],
+  rootPath: '/admin',
   resources: [
     {
       resource: Professional,
       options: {
         properties: {
           password: { isVisible: false },
-          governorate: {
-            reference: "Governorate",
-          },
-          originalGovernorate: {
-            reference: "Governorate",
-          },
         },
         actions: {
-          approve: {
-            actionType: "record",
-            icon: "Check",
-            handler: async (req, res, context) => {
-              const record = context.record;
-              if (!record) return { record: null, notice: { message: "لم يتم العثور على المهني", type: "error" } };
+          deleteProfessional: {
+            actionType: 'record',
+            icon: 'Trash',
+            isVisible: true,
+            handler: async (request, response, context) => {
+              const { record } = context
+              if (!record) {
+                return {
+                  notice: {
+                    message: 'المهني غير موجود',
+                    type: 'error',
+                  },
+                }
+              }
 
-              await record.update({ isApproved: true });
+              const data = record.params
 
-              await sendEmail(
-                record.params.email,
-                "تم قبول حسابك في Ask Professional",
-                `<h1>مرحبًا ${record.params.username}</h1><p>لقد تم قبول حسابك كمحترف في المنصة. شكرًا لانضمامك إلينا!</p>`
-              );
-
-              return {
-                record: record.toJSON(),
-                notice: { message: "تم قبول المهني وإرسال إيميل إشعار", type: "success" },
-              };
-            },
-            label: "قبول المهني",
-            showInDrawer: false,
-          },
-
-          deleteAndArchive: {
-            actionType: "record",
-            icon: "Trash",
-            handler: async (req, res, context) => {
-              const record = context.record;
-              if (!record) return { notice: { message: "لم يتم العثور على المهني", type: "error" } };
-
-              const data = record.params;
-
-              // إضافة المهني إلى المحذوفين
+              // تخزين البيانات في جدول المهنيين المحذوفين
               await DeletedProfessional.create({
                 username: data.username,
                 email: data.email,
-                anotheremail: data.anotheremail,
                 phoneNumber: data.phoneNumber,
                 professionField: data.professionField,
                 governorate: data.governorate,
-              });
+              })
 
-              // حذف المهني من الجدول الأصلي
-              await record.delete();
+              // حذف المهني
+              await record.delete()
 
-              // إرسال إيميل الحذف
-              await sendEmail(
-                data.email,
-                "تم حذف حسابك من Ask Professional",
-                `<h1>مرحبًا ${data.username}</h1><p>تم حذف حسابك من المنصة لأسباب إدارية. إذا كنت تعتقد أن هذا خطأ، يرجى التواصل معنا.</p>`
-              );
+              // إرسال إيميل إشعار
+              const subject = 'تم إلغاء حسابك على AskProf'
+              const html = `
+                <p>عزيزي/عزيزتي ${data.username}،</p>
+                <p>نود إعلامك أنه تم حذف حسابك من منصة AskProf.</p>
+                <p>للاستفسار، يرجى التواصل مع الإدارة.</p>
+                <p>مع تحيات فريق AskProf</p>
+              `
+
+              try {
+                await sendEmail(data.email, subject, html)
+              } catch (err) {
+                console.error('فشل في إرسال الإيميل:', err)
+              }
 
               return {
-                notice: { message: "تم حذف المهني وأرسلت إيميل إشعار", type: "success" },
-              };
+                notice: {
+                  message: 'تم حذف المهني وإرسال إشعار الإلغاء بنجاح',
+                  type: 'success',
+                },
+              }
             },
-            label: "حذف وأرشفة",
-            showInDrawer: false,
+            component: false,
           },
         },
       },
     },
-
     {
       resource: DeletedProfessional,
       options: {
-        properties: {
-          governorate: {
-            reference: "Governorate",
-          },
-        },
         actions: {
-          restore: {
-            actionType: "record",
-            icon: "Undo",
-            handler: async (req, res, context) => {
-              const record = context.record;
-              if (!record) return { notice: { message: "لم يتم العثور على المهني المحذوف", type: "error" } };
+          restoreProfessional: {
+            actionType: 'record',
+            icon: 'Undo',
+            isVisible: true,
+            handler: async (request, response, context) => {
+              const { record } = context
+              if (!record) {
+                return {
+                  notice: {
+                    message: 'المهني المحذوف غير موجود',
+                    type: 'error',
+                  },
+                }
+              }
 
-              const data = record.params;
+              const data = record.params
 
+              // إعادة المهني
               await Professional.create({
                 username: data.username,
                 email: data.email,
-                anotheremail: data.anotheremail,
                 phoneNumber: data.phoneNumber,
                 professionField: data.professionField,
                 governorate: data.governorate,
+                password: 'تم الحذف مسبقاً', // أو ضع null إذا أردت
+                confirmEmail: true,
                 isApproved: false,
-                password: "hashedOrDefaultPassword", // يجب معالجة كلمة المرور حسب نظامك
-                birthdate: new Date(), // يجب تزويد تاريخ الميلاد أو تعديله حسب الحاجة
-                gender: "ذكر", // يجب تعديل حسب الحاجة
-                usertype: "مهني",
-              });
+              })
 
-              await record.delete();
-
-              await sendEmail(
-                data.email,
-                "تم استرجاع حسابك في Ask Professional",
-                `<h1>مرحبًا ${data.username}</h1><p>تم استرجاع حسابك في المنصة. يمكنك الآن تسجيل الدخول واستخدام خدماتنا.</p>`
-              );
+              // حذف من جدول المهنيين المحذوفين
+              await record.delete()
 
               return {
-                notice: { message: "تم استرجاع المهني وإرسال إشعار عبر الإيميل", type: "success" },
-              };
+                notice: {
+                  message: 'تم استرجاع المهني بنجاح',
+                  type: 'success',
+                },
+              }
             },
-            label: "استرجاع المهني",
-            showInDrawer: false,
+            component: false,
           },
-        },
-      },
-    },
-
-    {
-      resource: Governorate,
-      options: {
-        properties: {
-          name: { isTitle: true },
-        },
-      },
-    },
-
-    {
-      resource: Review,
-      options: {
-        properties: {
-          professional: {
-            reference: "Professional",
-          },
-          user: {
-            reference: "User", // تأكد أن لديك موديل User
-          },
-          rating: { type: "number" },
-          comment: { type: "textarea" },
         },
       },
     },
   ],
-
-  rootPath: "/admin",
-};
-
-/*const admin = new AdminJS(adminOptions);
-
-const router = AdminJSExpress.buildAuthenticatedRouter(admin, {
-  authenticate: async (email, password) => {
-    if (email === "admin@domain.com" && password === "admin123") {
-      return { email: "admin@domain.com" };
-    }
-    return null;
+  branding: {
+    companyName: 'AskProf',
+    softwareBrothers: false,
   },
-  cookieName: "adminjs",
-  cookiePassword: process.env.ADMIN_COOKIE_PASS || "secret-cookie-password",
-});
+})
 
-export { admin, router };*/
+const adminRouter = AdminJSExpress.buildRouter(adminJs)
 
-/*const admin = new AdminJS(adminOptions);
-
-const router = AdminJSExpress.buildAuthenticatedRouter(admin, {
-  authenticate: async (email, password) => {
-    const admin = await AdminModel.findOne({ email });
-    if (!admin) return null;
-
-    const matched = await admin.comparePassword(password);
-    if (matched) {
-      return { email: admin.email, name: admin.name };
-    }
-    return null;
-  },
-  cookieName: "adminjs",
-  cookiePassword: process.env.ADMIN_COOKIE_PASS || "secret-cookie-password",
-});
-
-export { admin, router }; 
-*/
+export { adminJs, adminRouter }
