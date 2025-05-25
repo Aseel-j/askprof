@@ -1,3 +1,404 @@
+import AdminJS from "adminjs";
+import AdminJSExpress from "@adminjs/express";
+import { Database, Resource } from "@adminjs/mongoose";
+import bcrypt from "bcrypt";
+
+import professionalModel from "../DB/models/professional.model.js";
+import DeletedProfessionalModel from "../DB/models/deletedProfessional.model.js";
+import GovernorateModel from "../DB/models/governorate.model.js";
+import ReviewModel from "../DB/models/review.model.js";
+import AdminModel from "../DB/models/admin.model.js";
+
+import { sendEmail } from "../src/utils/SendEmail.js";
+
+AdminJS.registerAdapter({ Database, Resource });
+
+const adminOptions = {
+  resources: [
+    {
+      resource: professionalModel,
+      options: {
+        properties: {
+          password: { isVisible: false },
+          governorate: { reference: "Governorate" },
+          originalGovernorate: { reference: "Governorate" },
+        },
+        actions: {
+          approve: {
+            actionType: "record",
+            icon: "Check",
+            handler: async (req, res, context) => {
+              const record = context.record;
+              if (!record) {
+                return {
+                  record: null,
+                  notice: { message: "لم يتم العثور على المهني", type: "error" },
+                };
+              }
+
+              await record.update({ isApproved: true });
+
+              await sendEmail(
+                record.params.email,
+                "تم قبول حسابك في Ask Professional",
+                `<h1>مرحبًا ${record.params.username}</h1>
+                 <p>لقد تم قبول حسابك كمحترف في المنصة. شكرًا لانضمامك إلينا!</p>`
+              );
+
+              return {
+                record: record.toJSON(),
+                notice: { message: "تم قبول المهني وإرسال إيميل إشعار", type: "success" },
+              };
+            },
+            label: "قبول المهني",
+            showInDrawer: false,
+          },
+
+          deleteAndArchive: {
+            actionType: "record",
+            icon: "Trash",
+            handler: async (req, res, context) => {
+              const record = context.record;
+              if (!record) {
+                return { notice: { message: "لم يتم العثور على المهني", type: "error" } };
+              }
+
+              const data = record.params;
+
+              await DeletedProfessionalModel.create({
+                username: data.username,
+                email: data.email,
+                anotheremail: data.anotheremail,
+                phoneNumber: data.phoneNumber,
+                professionField: data.professionField,
+                governorate: data.governorate,
+              });
+
+              await record.delete();
+
+              await sendEmail(
+                data.email,
+                "تم حذف حسابك من Ask Professional",
+                `<h1>مرحبًا ${data.username}</h1>
+                 <p>تم حذف حسابك من المنصة لأسباب إدارية. إذا كنت تعتقد أن هذا القرار خاطئ، يرجى التواصل معنا.</p>`
+              );
+
+              return {
+                notice: { message: "تم حذف المهني وأرسلت إيميل إشعار", type: "success" },
+              };
+            },
+            label: "حذف وأرشفة",
+            showInDrawer: false,
+          },
+        },
+      },
+    },
+
+    {
+      resource: DeletedProfessionalModel,
+      options: {
+        properties: {
+          governorate: { reference: "Governorate" },
+        },
+        actions: {
+          restore: {
+            actionType: "record",
+            icon: "Undo",
+            handler: async (req, res, context) => {
+              const record = context.record;
+              if (!record) {
+                return { notice: { message: "لم يتم العثور على المهني المحذوف", type: "error" } };
+              }
+
+              const data = record.params;
+
+              const hashedPassword = await bcrypt.hash("DefaultPassword123", 10);
+
+              await professionalModel.create({
+                username: data.username,
+                email: data.email,
+                anotheremail: data.anotheremail,
+                phoneNumber: data.phoneNumber,
+                professionField: data.professionField,
+                governorate: data.governorate,
+                isApproved: false,
+                password: hashedPassword,
+                birthdate: new Date(),
+                gender: "ذكر",
+                usertype: "مهني",
+              });
+
+              await record.delete();
+
+              await sendEmail(
+                data.email,
+                "تم استرجاع حسابك في Ask Professional",
+                `<h1>مرحبًا ${data.username}</h1>
+                 <p>تم استرجاع حسابك في المنصة. يمكنك الآن تسجيل الدخول واستخدام خدماتنا.</p>`
+              );
+
+              return {
+                notice: { message: "تم استرجاع المهني وإرسال إشعار عبر الإيميل", type: "success" },
+              };
+            },
+            label: "استرجاع المهني",
+            showInDrawer: false,
+          },
+        },
+      },
+    },
+
+    {
+      resource: GovernorateModel,
+      options: {
+        properties: {
+          name: { isTitle: true },
+        },
+      },
+    },
+
+    {
+      resource: ReviewModel,
+      options: {
+        properties: {
+          professional: { reference: "Professional" },
+          user: { reference: "User" },
+          rating: { type: "number" },
+          comment: { type: "textarea" },
+        },
+      },
+    },
+  ],
+
+  rootPath: "/admin",
+};
+
+const admin = new AdminJS(adminOptions);
+
+const router = AdminJSExpress.buildAuthenticatedRouter(
+  admin,
+  {
+    authenticate: async (email, password) => {
+      const adminUser = await AdminModel.findOne({ email });
+      if (!adminUser) return null;
+
+      const matched = bcrypt.compareSync(password, adminUser.password);
+      if (matched) {
+        return { email: adminUser.email, name: adminUser.name };
+      }
+      return null;
+    },
+    cookieName: "adminjs",
+    cookiePassword: process.env.ADMIN_COOKIE_PASS || "secret-cookie-password",
+  },
+  null,
+  {
+    resave: false,
+    saveUninitialized: false,
+  }
+);
+
+export { admin, router };
+
+/*import AdminJS from "adminjs";
+import AdminJSExpress from "@adminjs/express";
+import { Database, Resource } from "@adminjs/mongoose";
+import bcrypt from "bcrypt";
+
+import professionalModel from "../DB/models/professional.model.js";
+import DeletedProfessionalModel from "../DB/models/deletedProfessional.model.js";
+import GovernorateModel from "../DB/models/governorate.model.js";
+import ReviewModel from "../DB/models/review.model.js";
+import AdminModel from "../DB/models/admin.model.js";
+
+import { sendEmail } from "../src/utils/SendEmail.js";
+
+AdminJS.registerAdapter({ Database, Resource });
+
+const adminOptions = {
+  resources: [
+    {
+      resource: professionalModel,
+      options: {
+        properties: {
+          password: { isVisible: false },
+          governorate: { reference: "Governorate" },
+          originalGovernorate: { reference: "Governorate" },
+        },
+        actions: {
+          approve: {
+            actionType: "record",
+            icon: "Check",
+            handler: async (req, res, context) => {
+              const record = context.record;
+              if (!record) {
+                return {
+                  record: null,
+                  notice: { message: "لم يتم العثور على المهني", type: "error" },
+                };
+              }
+
+              await record.update({ isApproved: true });
+
+              await sendEmail(
+                record.params.email,
+                "تم قبول حسابك في Ask Professional",
+                `<h1>مرحبًا ${record.params.username}</h1><p>لقد تم قبول حسابك كمحترف في المنصة. شكرًا لانضمامك إلينا!</p>`
+              );
+
+              return {
+                record: record.toJSON(),
+                notice: { message: "تم قبول المهني وإرسال إيميل إشعار", type: "success" },
+              };
+            },
+            label: "قبول المهني",
+            showInDrawer: false,
+          },
+
+          deleteAndArchive: {
+            actionType: "record",
+            icon: "Trash",
+            handler: async (req, res, context) => {
+              const record = context.record;
+              if (!record) {
+                return { notice: { message: "لم يتم العثور على المهني", type: "error" } };
+              }
+
+              const data = record.params;
+
+              await DeletedProfessionalModel.create({
+                username: data.username,
+                email: data.email,
+                anotheremail: data.anotheremail,
+                phoneNumber: data.phoneNumber,
+                professionField: data.professionField,
+                governorate: data.governorate,
+              });
+
+              await record.delete();
+
+              await sendEmail(
+                data.email,
+                "تم حذف حسابك من Ask Professional",
+                `<h1>مرحبًا ${data.username}</h1><p>تم حذف حسابك من المنصة لأسباب إدارية. إذا كنت تعتقد أن هذا خطأ، يرجى التواصل معنا.</p>`
+              );
+
+              return {
+                notice: { message: "تم حذف المهني وأرسلت إيميل إشعار", type: "success" },
+              };
+            },
+            label: "حذف وأرشفة",
+            showInDrawer: false,
+          },
+        },
+      },
+    },
+
+    {
+      resource: DeletedProfessionalModel,
+      options: {
+        properties: {
+          governorate: { reference: "Governorate" },
+        },
+        actions: {
+          restore: {
+            actionType: "record",
+            icon: "Undo",
+            handler: async (req, res, context) => {
+              const record = context.record;
+              if (!record) {
+                return { notice: { message: "لم يتم العثور على المهني المحذوف", type: "error" } };
+              }
+
+              const data = record.params;
+
+              await professionalModel.create({
+                username: data.username,
+                email: data.email,
+                anotheremail: data.anotheremail,
+                phoneNumber: data.phoneNumber,
+                professionField: data.professionField,
+                governorate: data.governorate,
+                isApproved: false,
+                password: "hashedOrDefaultPassword", // عدل حسب نظامك، يجب أن يكون كلمة مرور مشفرة فعلياً
+                birthdate: new Date(), // عدل حسب الحاجة
+                gender: "ذكر", // عدل حسب الحاجة
+                usertype: "مهني",
+              });
+
+              await record.delete();
+
+              await sendEmail(
+                data.email,
+                "تم استرجاع حسابك في Ask Professional",
+                `<h1>مرحبًا ${data.username}</h1><p>تم استرجاع حسابك في المنصة. يمكنك الآن تسجيل الدخول واستخدام خدماتنا.</p>`
+              );
+
+              return {
+                notice: { message: "تم استرجاع المهني وإرسال إشعار عبر الإيميل", type: "success" },
+              };
+            },
+            label: "استرجاع المهني",
+            showInDrawer: false,
+          },
+        },
+      },
+    },
+
+    {
+      resource: GovernorateModel,
+      options: {
+        properties: {
+          name: { isTitle: true },
+        },
+      },
+    },
+
+    {
+      resource: ReviewModel,
+      options: {
+        properties: {
+          professional: { reference: "Professional" },
+          user: { reference: "User" },
+          rating: { type: "number" },
+          comment: { type: "textarea" },
+        },
+      },
+    },
+  ],
+
+  rootPath: "/admin",
+};
+
+const admin = new AdminJS(adminOptions);
+
+const router = AdminJSExpress.buildAuthenticatedRouter(
+  admin,
+  {
+    authenticate: async (email, password) => {
+      const adminUser = await AdminModel.findOne({ email });
+      if (!adminUser) return null;
+
+      // هنا نستخدم bcrypt للمقارنة بدون دالة في السكيمة
+      const matched = await bcrypt.compare(password, adminUser.password);
+      if (matched) {
+        return { email: adminUser.email, name: adminUser.name };
+      }
+      return null;
+    },
+    cookieName: "adminjs",
+    cookiePassword: process.env.ADMIN_COOKIE_PASS || "secret-cookie-password",
+  },
+  null,
+  {
+    resave: false,
+    saveUninitialized: false,
+  }
+);
+
+export { admin, router };
+*/
+
 /*import AdminJS from "adminjs";
 import AdminJSExpress from "@adminjs/express";
 import AdminJSMongoose from "@adminjs/mongoose";
@@ -202,4 +603,5 @@ const router = AdminJSExpress.buildAuthenticatedRouter(admin, {
   cookiePassword: process.env.ADMIN_COOKIE_PASS || "secret-cookie-password",
 });
 
-export { admin, router }; */
+export { admin, router }; 
+*/
