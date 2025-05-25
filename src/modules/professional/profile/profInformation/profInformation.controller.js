@@ -91,7 +91,7 @@ export const updateProfessionalProfile = async (req, res) => {
 
   return res.status(200).json(filteredProfile);
 };*/
-export const getProfessionalProfile = async (req, res) => {
+/*export const getProfessionalProfile = async (req, res) => {
   const { id } = req.params; // الحصول على ID المهني من الـ params
 
   // التحقق من وجود المهني في قاعدة البيانات
@@ -130,7 +130,51 @@ export const getProfessionalProfile = async (req, res) => {
   }
 
   return res.status(200).json(filteredProfile);
+};*/
+export const getProfessionalProfile = async (req, res) => {
+  const { id } = req.params; // الحصول على ID المهني من الـ params
+
+  // التحقق من وجود المهني في قاعدة البيانات
+  const professional = await professionalModel
+    .findById(id)
+    .populate("governorate", "name"); // إحضار اسم المحافظة فقط
+
+  if (!professional) {
+    return res.status(404).json({ message: "المهني غير موجود" });
+  }
+
+  const profileObj = professional.toObject();
+  const filteredProfile = {};
+
+  // city مع تعويضها باسم المحافظة إذا كانت فارغة
+  if (profileObj.city && profileObj.city.trim() !== "") {
+    filteredProfile.city = profileObj.city;
+  } else if (profileObj.governorate && profileObj.governorate.name) {
+    filteredProfile.city = profileObj.governorate.name;
+  }
+
+  // الحقول الأخرى
+  const otherFields = [
+    "username",
+    "bio",
+    "phoneNumber",
+    "anotheremail",
+    "professionField"
+  ];
+
+  for (const field of otherFields) {
+    const value = profileObj[field];
+    if (value !== null && value !== undefined) {
+      filteredProfile[field] = value;
+    }
+  }
+
+  // ✅ إرجاع الـ id
+  filteredProfile.id = profileObj._id;
+
+  return res.status(200).json(filteredProfile);
 };
+
 // اضافة شرح عن المهني
  export const updateProfessionalDescription = async (req, res) => {
   const { token } = req.headers;

@@ -1,0 +1,12 @@
+import { Schema, model, mongoose } from "mongoose";
+
+const deletedProfessionalSchema = new Schema({
+  username: String,
+  email: String,
+  phoneNumber: String,
+  professionField: String,
+  governorate: { type: Schema.Types.ObjectId, ref: "Governorate" },
+}, { timestamps: true });
+
+const DeletedProfessionalModel = mongoose.models.DeletedProfessional || model("DeletedProfessional", deletedProfessionalSchema);
+export default DeletedProfessionalModel;
