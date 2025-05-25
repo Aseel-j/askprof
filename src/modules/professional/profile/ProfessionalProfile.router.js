@@ -27,7 +27,7 @@ router.put('/updateProfessionalDescription/:id',validation(updateDescriptionSche
 //عرض النبذة عن المهني
 router.get('/getProfessionalDescription/:id',asyncHandler(controller2.getProfessionalDescription));
 //اضافة عمل من اعمال المهني
-router.post('/addProfessionalWork/:id',validation(addProfessionalWorkSchema),asyncHandler(controller.addProfessionalWork));
+router.post('/addProfessionalWork/:id',fileUpload(fileValidation.image).array('image'),validation(addProfessionalWorkSchema),asyncHandler(controller.addProfessionalWork));
 //عرض الاعمال
 router.get('/getProfessionalWorks/:id',asyncHandler(controller.getProfessionalWorks));
 //حذف عمل 

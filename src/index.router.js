@@ -14,7 +14,7 @@ const initApp = async(app,express)=>{
     connectDb();
     //ترحيب 
     app.get('/',(req,res)=>{
-        return res.status(200).json({message:"welcome ..."});
+     return res.status(200).json({message:"welcome ..."});
     }); 
     //هون عشان انشاء الحساب 
     app.use('/auth',authRouter);

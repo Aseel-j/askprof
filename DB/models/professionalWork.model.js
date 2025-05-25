@@ -18,6 +18,10 @@ const professionalWorkSchema = new mongoose.Schema({
     type: String,
     required: true // تفاصيل مطولة
   },
+   images: {
+    type: [String], // روابط الصور (URLs)
+    default: []
+  },
   date: {
     type: Date,
     default: Date.now

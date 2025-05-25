@@ -9,9 +9,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 initApp(app,express);
  //await professionalModel.syncIndexes();
-  await ActiveBookingModel.syncIndexes();
-  await InactiveBookingModel.syncIndexes();
-  await workingHoursModel.syncIndexes();
+  //await ActiveBookingModel.syncIndexes();
+  //await InactiveBookingModel.syncIndexes();
+  //await workingHoursModel.syncIndexes();
 
 
 

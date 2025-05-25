@@ -9,7 +9,7 @@ export const registerSchema = joi.object({
     gender: joi.string().valid("ذكر", "أنثى").required(),
     usertype: joi.string().valid("مستخدم", "مهني").required(),
   
-    // 🟢 professionField متاح فقط إذا كان usertype "مهني"
+    //  professionField متاح فقط إذا كان usertype "مهني"
     professionField: joi.string()
       .valid("التكنولوجيا", "الكهربائيات", "ورشات البناء")
       .when('usertype', {
