@@ -7,7 +7,7 @@ import professionalModel from '../../../DB/models/professional.model.js';
 import InactiveBookingModel from '../../../DB/models/inactiveBookingSchema.model.js';
 import { sendEmail } from '../../utils/SendEmail.js';
 // انشاء حجز
-export const createBooking = async (req, res) => {
+/*export const createBooking = async (req, res) => {
   const { token } = req.headers;
   const { bookingDate, startTime, endTime, bookingDetails } = req.body;
   const { professionalId } = req.params;
@@ -96,6 +96,95 @@ export const createBooking = async (req, res) => {
   }
 
   // إنشاء الحجز الجديد
+  const newBooking = new ActiveBookingModel({
+    bookingDate: bookingDateObj,
+    startTime,
+    endTime,
+    professionalId: profObjectId,
+    userId,
+    bookingDetails,
+  });
+
+  await newBooking.save();
+
+  return res.status(201).json({
+    message: "تم إنشاء الحجز وتحديث حالة الموعد",
+    booking: newBooking,
+  });
+};
+*/
+export const createBooking = async (req, res) => {
+  const { token } = req.headers;
+  const { bookingDate, startTime, endTime, bookingDetails } = req.body;
+  const { professionalId } = req.params;
+
+  if (!token) {
+    return res.status(401).json({ message: "التوكن مفقود" });
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
+  } catch {
+    return res.status(401).json({ message: "توكن غير صالح" });
+  }
+
+  const userId = decoded.id;
+
+  // تحويل professionalId إلى ObjectId
+  const profObjectId = new mongoose.Types.ObjectId(professionalId);
+
+  // تحويل التاريخ إلى كائن Date مضبوط بتوقيت UTC
+  const [day, month, year] = bookingDate.split("-").map(Number);
+  const bookingDateObj = new Date(Date.UTC(year, month - 1, day));
+
+  // تأكد أن وقت البدء قبل وقت الانتهاء
+  const timeToMinutes = (timeStr) => {
+    const [h, m] = timeStr.split(":").map(Number);
+    return h * 60 + m;
+  };
+
+  if (timeToMinutes(startTime) >= timeToMinutes(endTime)) {
+    return res.status(400).json({ message: "وقت البدء يجب أن يكون قبل وقت الانتهاء" });
+  }
+
+  // تحقق من صلاحية المستخدم
+  const user = await userModel.findById(userId).select("usertype");
+  if (!user || user.usertype !== "مستخدم") {
+    return res.status(403).json({ message: "صلاحيات غير كافية" });
+  }
+
+  // تحقق من وجود حجز مسبق
+  const existingBooking = await ActiveBookingModel.findOne({
+    userId,
+    professionalId: profObjectId,
+    bookingDate: bookingDateObj,
+    startTime,
+    endTime,
+  });
+
+  if (existingBooking) {
+    return res.status(409).json({ message: "لديك حجز مسبق في هذا الموعد" });
+  }
+
+  // تحديث الموعد في جدول المواعيد
+  const slot = await workingHoursModel.findOneAndUpdate(
+    {
+      professional: profObjectId,
+      date: bookingDateObj,
+      startTime,
+      endTime,
+      status: "متاح",
+    },
+    { $set: { status: "محجوز" } },
+    { new: true }
+  );
+
+  if (!slot) {
+    return res.status(404).json({ message: "هذا الموعد غير متاح أو محجوز" });
+  }
+
+  // إنشاء الحجز
   const newBooking = new ActiveBookingModel({
     bookingDate: bookingDateObj,
     startTime,

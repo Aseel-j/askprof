@@ -37,14 +37,14 @@ profilePicture: {
      type: Object,
          }, 
 video: {
-     type: Object, // Video URL or link
+     type: Object, 
      },
 bio: { 
      type: String , 
 
     },
 description: {
-     type: String, // Description about the professional
+     type: String, 
         
      },
 confirmEmail:{
@@ -66,8 +66,7 @@ originalGovernorate: {
   },
 governorate: {
      type:Schema.Types.ObjectId,
-     ref: 'Governorate' ,
-     
+     ref: 'Governorate' , 
      },
 city:{
      type: String,
@@ -77,25 +76,19 @@ sendCode:{
      type: String,
      default:null,
      },
-
 professionField: {
     type: String,
     enum:["التكنولوجيا","الكهربائيات","ورشات البناء"],
-    required: true, // اجعلها غير مطلوبة إن أردت
+    required: true, 
   },
-
-   
-
 },{
     timestamps:true,
 });
-// إذا لم يتم تحديد المحافظة، اجعلها تساوي المحافظة الأصلية
 professionalSchema.pre("save", function (next) {
   if (!this.governorate && this.originalGovernorate) {
     this.governorate = this.originalGovernorate;
   }
   next();
 });
-
 const professionalModel=  mongoose.models.Professional|| model('Professional',professionalSchema);
 export default professionalModel;

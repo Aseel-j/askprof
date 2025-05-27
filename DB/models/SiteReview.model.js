@@ -3,7 +3,7 @@ import { Schema, model, mongoose } from "mongoose";
 const SiteReviewSchema = new Schema({
   user: {
     type:Schema.Types.ObjectId,
-    ref: 'User', // يفترض أنك تملك موديل باسم User
+    ref: 'User', 
     required: true
   },
   rating: {
@@ -21,6 +21,5 @@ const SiteReviewSchema = new Schema({
     default: Date.now
   }
 });
-
 const SiteReviewModel = mongoose.models.SiteReview || model('SiteReview', SiteReviewSchema);
 export default SiteReviewModel;

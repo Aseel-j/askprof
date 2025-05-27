@@ -7,6 +7,5 @@ const governorateSchema = new Schema({
     unique: true,
   },
 });
-
 const GovernorateModel = mongoose.models.Governorate||model('Governorate', governorateSchema);
 export default GovernorateModel;

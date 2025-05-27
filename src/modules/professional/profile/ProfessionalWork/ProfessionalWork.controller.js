@@ -81,7 +81,7 @@ export const getProfessionalWorks = async (req, res) => {
   });
 };
 //تعديل على العمل 
-export const editProfessionalWork = async (req, res) => {
+/*export const editProfessionalWork = async (req, res) => {
   const { token } = req.headers;
   const { id } = req.params; // هذا id العمل
 
@@ -129,6 +129,68 @@ export const editProfessionalWork = async (req, res) => {
   }
 
   // التحديث
+  const updatedWork = await professionalWorkModel.findByIdAndUpdate(id, updates, {
+    new: true,
+  });
+
+  return res.status(200).json({
+    message: "تم تعديل العمل بنجاح",
+    work: updatedWork,
+  });
+};*/
+export const editProfessionalWork = async (req, res) => {
+  const { token } = req.headers;
+  const { id } = req.params;
+
+  if (!token) {
+    return res.status(401).json({ message: "التوكن مفقود" });
+  }
+
+  // فك التوكن
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
+  } catch (err) {
+    return res.status(401).json({ message: "توكن غير صالح" });
+  }
+
+  // الحصول على العمل
+  const work = await professionalWorkModel.findById(id);
+  if (!work) {
+    return res.status(404).json({ message: "العمل غير موجود" });
+  }
+
+  // التأكد من ملكية العمل
+  if (work.professional.toString() !== decoded.id) {
+    return res.status(403).json({ message: "غير مصرح لك بتعديل هذا العمل" });
+  }
+
+  // تجهيز التعديلات
+  const updates = {};
+  const body = req.body || {};
+
+  if (body.placeWorkName) updates.placeWorkName = body.placeWorkName;
+  if (body.summaryAboutWork) updates.summaryAboutWork = body.summaryAboutWork;
+  if (body.description) updates.description = body.description;
+
+  // دمج الصور الجديدة مع القديمة
+  if (req.files && req.files.length > 0) {
+    try {
+      const uploadResults = await Promise.all(
+        req.files.map((file) => cloudinary.uploader.upload(file.path))
+      );
+
+      // ✅ دمج الصور الجديدة مع الصور الموجودة مسبقًا
+      updates.images = [
+        ...(work.images || []),
+        ...uploadResults.map((result) => result.secure_url),
+      ];
+    } catch (error) {
+      return res.status(500).json({ message: "حدث خطأ أثناء رفع الصور", error });
+    }
+  }
+
+  // تنفيذ التحديث
   const updatedWork = await professionalWorkModel.findByIdAndUpdate(id, updates, {
     new: true,
   });

@@ -8,6 +8,5 @@ const deletedProfessionalSchema = new Schema({
   rejectionReason: { type: String },
   governorate: { type: Schema.Types.ObjectId, ref: "Governorate" },
 }, { timestamps: true });
-
 const DeletedProfessionalModel = mongoose.models.DeletedProfessional || model("DeletedProfessional", deletedProfessionalSchema);
 export default DeletedProfessionalModel;

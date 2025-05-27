@@ -3,12 +3,12 @@ import { Schema, model, mongoose } from "mongoose";
 const reviewSchema = new Schema({
   user: {
     type:Schema.Types.ObjectId,
-    ref: 'User', // يفترض أنك تملك موديل باسم User
+    ref: 'User', 
     required: true
   },
   professional: {
     type:Schema.Types.ObjectId,
-    ref: 'Professional', // يفترض أنك تملك موديل باسم Professional
+    ref: 'Professional', 
     required: true
   },
   rating: {
@@ -26,6 +26,5 @@ const reviewSchema = new Schema({
     default: Date.now
   }
 });
-
 const ReviewModel = mongoose.models.Review || model('Review', reviewSchema);
 export default ReviewModel;

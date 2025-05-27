@@ -8,8 +8,6 @@ export const registerSchema = joi.object({
     birthdate: joi.date().required(),
     gender: joi.string().valid("ذكر", "أنثى").required(),
     usertype: joi.string().valid("مستخدم", "مهني").required(),
-  
-    //  professionField متاح فقط إذا كان usertype "مهني"
     professionField: joi.string()
       .valid("التكنولوجيا", "الكهربائيات", "ورشات البناء")
       .when('usertype', {
@@ -18,19 +16,17 @@ export const registerSchema = joi.object({
         otherwise: joi.forbidden()
       })
   });
-  
-
-
+//تسجيل الدخول 
 export const loginSchema = joi.object({ 
     email:joi.string().email().required(), 
     password: joi.string().min(6).pattern(/(?=.*[A-Z])/).required(),
     });
-
+//ارسال الكود
 export const SendCodeSchema = joi.object({ 
     email:joi.string().email().required(), 
      
     });
-
+//تغيير كلمة المرور 
 export const resetPasswordSchema = joi.object({ 
     email:joi.string().email().required(), 
     password: joi.string().min(6).pattern(/(?=.*[A-Z])/).required(),

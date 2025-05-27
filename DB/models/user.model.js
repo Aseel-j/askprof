@@ -34,24 +34,19 @@ const userSchema = new Schema({
          }, 
     bio: { 
          type: String , 
-
     },
     confirmEmail:{
          type: Boolean,
          default: false,
-    },
+     },
     usertype:{
          type:String,
          enum:["مستخدم","مهني"],
     },
-
-    sendCode:{
+     sendCode:{
      type: String,
      default:null,
      },
-
-   
-
 },{
     timestamps:true,
 });

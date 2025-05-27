@@ -15,13 +15,10 @@ const workingHoursSchema = new Schema({
     type: Date,
     required: true
   },
-   // وقت بدء الحجز
     startTime: {
       type: String, 
       required: true,
     },
-
-    // وقت انتهاء الحجز
     endTime: {
       type: String, 
       required: true,
@@ -34,6 +31,5 @@ const workingHoursSchema = new Schema({
 }, {
   timestamps: true,
 });
-
 const workingHoursModel = mongoose.models.WorkingHours || model('WorkingHours', workingHoursSchema);
 export default workingHoursModel;

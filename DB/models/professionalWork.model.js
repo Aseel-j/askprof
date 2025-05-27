@@ -8,18 +8,18 @@ const professionalWorkSchema = new mongoose.Schema({
   },
   placeWorkName: {
     type: String,
-    required: false // مثلاً اسم الشركة أو المؤسسة (اختياري حسب الحالة)
+    required: false 
   },
   summaryAboutWork: {
     type: String,
-    required: true // نبذة قصيرة
+    required: true 
   },
   description: {
     type: String,
-    required: true // تفاصيل مطولة
+    required: true
   },
    images: {
-    type: [String], // روابط الصور (URLs)
+    type: [String], 
     default: []
   },
   date: {
@@ -27,6 +27,5 @@ const professionalWorkSchema = new mongoose.Schema({
     default: Date.now
   },
 });
-
 const professionalWorkModel = mongoose.models.professionalWork || model('professionalWork', professionalWorkSchema);
 export default professionalWorkModel;
