@@ -129,6 +129,11 @@ export const addWorkingHours = async (req, res) => {
     return res.status(403).json({ message: "غير مصرح لك بتنفيذ هذا الإجراء" });
   }
 
+  // تحقق أن التوكن لمهني فقط
+  if (decoded.type !== "مهني") {
+    return res.status(403).json({ message: "هذا الإجراء مسموح للمهنيين فقط" });
+  }
+
   // التحقق من صحة البيانات عبر Joi
   const { error } = addWorkingHoursSchema.validate({ workingHours }, { abortEarly: false });
   if (error) {
@@ -138,6 +143,7 @@ export const addWorkingHours = async (req, res) => {
     });
   }
 
+  // تحقق من المواعيد المكررة
   const duplicates = [];
 
   for (const hour of workingHours) {
