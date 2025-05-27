@@ -4,7 +4,7 @@ import userModel from '../../../DB/models/user.model.js';
 import ReviewModel from '../../../DB/models/review.model.js'; 
 import { AppError } from '../../utils/App.Error.js';
 
-export const addReview = async (req, res) => {
+/*export const addReview = async (req, res) => {
   const { comment, rating } = req.body;
   const {professionalId}=req.params;
 
@@ -59,6 +59,53 @@ export const addReview = async (req, res) => {
     message: "تمت إضافة التقييم بنجاح",
     review: newReview,
   });
+};*/
+export const addReview = async (req, res) => {
+  const { comment, rating } = req.body;
+  const { professionalId } = req.params;
+
+  try {
+    // التحقق من وجود التوكن
+    const { token } = req.headers;
+    if (!token) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    // فك التوكن
+    const decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
+
+    // التحقق من هوية المستخدم
+    const user = await userModel.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ message: "المستخدم غير موجود" });
+    }
+
+    // التحقق من نوع المستخدم
+    if (user.usertype !== "مستخدم") {
+      return res.status(403).json({ message: "فقط المستخدم يستطيع تقييم الموقع" });
+    }
+
+    // تحقق من وجود المهني
+    const professional = await professionalModel.findById(professionalId);
+    if (!professional) {
+      return res.status(404).json({ message: "المهني غير موجود" });
+    }
+
+    // إنشاء التقييم (بدون التحقق من وجود تقييم سابق)
+    const newReview = await ReviewModel.create({
+      user: user._id,
+      professional: professionalId,
+      rating: Number(rating), // تأكد أن التقييم رقم
+      comment,
+    });
+
+    return res.status(201).json({
+      message: "تمت إضافة التقييم بنجاح",
+      review: newReview,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "حدث خطأ ما", error: error.message });
+  }
 };
 //ارجاع راي حسب المهني 
 export const getProfessionalReviews = async (req, res) => {

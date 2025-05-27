@@ -201,8 +201,6 @@ export const getWorkingHoursByPeriods = async (req, res) => {
     week4  // الأسبوع الرابع
   });
 };
-
-
 //حذف الموعد
 export const deleteWorkingHour = async (req, res) => {
   const { id } = req.params;
