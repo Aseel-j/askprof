@@ -57,7 +57,7 @@ import { addWorkingHoursSchema } from './ProfessionalWorkingHours.validation.js'
     workingHours: newWorkingHours,
   });
 };*/
-export const addWorkingHours = async (req, res) => {
+/*export const addWorkingHours = async (req, res) => {
   const { token } = req.headers;
   const { id } = req.params;
   const { workingHours } = req.body;
@@ -90,6 +90,77 @@ export const addWorkingHours = async (req, res) => {
   }
 
   // إدخال المواعيد
+  const newWorkingHours = await workingHoursModel.insertMany(
+    workingHours.map(hour => ({
+      professional: id,
+      day: hour.day,
+      date: hour.date,
+      startTime: hour.startTime,
+      endTime: hour.endTime,
+      status: hour.status || "متاح",
+    }))
+  );
+
+  return res.status(201).json({
+    message: "تمت إضافة المواعيد بنجاح",
+    workingHours: newWorkingHours,
+  });
+};*/
+export const addWorkingHours = async (req, res) => {
+  const { token } = req.headers;
+  const { id } = req.params;
+  const { workingHours } = req.body;
+
+  // تحقق من وجود التوكن
+  if (!token) {
+    return res.status(401).json({ message: "التوكن مفقود" });
+  }
+
+  // تحقق من صحة التوكن
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
+  } catch {
+    return res.status(401).json({ message: "توكن غير صالح" });
+  }
+
+  // تحقق أن التوكن يخص نفس الـ ID
+  if (decoded.id !== id) {
+    return res.status(403).json({ message: "غير مصرح لك بتنفيذ هذا الإجراء" });
+  }
+
+  // التحقق من صحة البيانات عبر Joi
+  const { error } = addWorkingHoursSchema.validate({ workingHours }, { abortEarly: false });
+  if (error) {
+    return res.status(400).json({
+      message: "خطأ في البيانات المدخلة",
+      errors: error.details.map(e => e.message)
+    });
+  }
+
+  const duplicates = [];
+
+  for (const hour of workingHours) {
+    const exists = await workingHoursModel.findOne({
+      professional: id,
+      date: hour.date,
+      startTime: hour.startTime,
+      endTime: hour.endTime
+    });
+
+    if (exists) {
+      duplicates.push(`${hour.date} من ${hour.startTime} إلى ${hour.endTime}`);
+    }
+  }
+
+  if (duplicates.length > 0) {
+    return res.status(409).json({
+      message: "بعض المواعيد مكررة ولا يمكن إضافتها",
+      duplicates
+    });
+  }
+
+  // إدخال المواعيد الجديدة
   const newWorkingHours = await workingHoursModel.insertMany(
     workingHours.map(hour => ({
       professional: id,
