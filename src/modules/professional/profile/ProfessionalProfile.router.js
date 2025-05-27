@@ -20,6 +20,8 @@ router.get('/getProfilePicture/:id',asyncHandler(controller3.getProfilePicture))
 router.get('/getVideo/:id',asyncHandler(controller3.getVideo));
 //تحديث بيانات الملف الشخصي 
 router.put('/updateProfessionalProfile/:id',validation(updateProfessionalProfileSchema),asyncHandler(controller2.updateProfessionalProfile));
+//تعديل محافظة المهني 
+router.put('/updateProfessionalGovernorate/:id',validation(updateProfessionalProfileSchema),asyncHandler(controller2.updateProfessionalGovernorate));
 //عرض بيانات الملف الشخصي 
 router.get('/getProfessionalProfile/:id',asyncHandler(controller2.getProfessionalProfile));
 //اضافة نبذة عن المهني
