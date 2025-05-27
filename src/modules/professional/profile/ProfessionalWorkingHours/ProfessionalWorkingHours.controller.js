@@ -110,13 +110,16 @@ export const addWorkingHours = async (req, res) => {
 export const getWorkingHoursByPeriods = async (req, res) => {
   const { id } = req.params;
 
-  // حساب بداية الأسبوع الأول (السبت الحالي)
-  const startOfWeek1 = moment().isoWeekday(6).startOf("day");
+  // جعل السبت بداية الأسبوع الحالي: إذا كان اليوم قبل السبت، اذهب للسبت الماضي
+  const today = moment().startOf("day");
+  const dayOfWeek = today.isoWeekday(); // 1 = الاثنين ... 6 = السبت
+  const daysSinceSaturday = (dayOfWeek >= 6) ? (dayOfWeek - 6) : (dayOfWeek + 1);
+  const startOfWeek1 = today.clone().subtract(daysSinceSaturday, "days");
 
-  // حساب نهاية الأسبوع الرابع (الجمعة بعد 27 يوم)
+  // نهاية الأسبوع الرابع (الجمعة بعد 27 يوم من السبت الأول)
   const endOfWeek4 = moment(startOfWeek1).add(27, "days").endOf("day");
 
-  // جلب المواعيد خلال الأربع أسابيع فقط
+  // جلب المواعيد خلال الأربع أسابيع
   const workingHours = await workingHoursModel.find({
     professional: id,
     date: {
@@ -125,7 +128,7 @@ export const getWorkingHoursByPeriods = async (req, res) => {
     }
   }).lean();
 
-  // إنشاء مصفوفات الأسابيع الأربعة
+  // تحضير الأسابيع الأربعة
   const week1 = [];
   const week2 = [];
   const week3 = [];
@@ -159,10 +162,10 @@ export const getWorkingHoursByPeriods = async (req, res) => {
 
   return res.status(200).json({
     message: "تم عرض المواعيد بنجاح",
-    week1, // الأسبوع الحالي
-    week2, // الأسبوع القادم
-    week3, // الأسبوع بعد القادم
-    week4  // الأسبوع الرابع
+    week1,
+    week2,
+    week3,
+    week4
   });
 };
 //حذف الموعد

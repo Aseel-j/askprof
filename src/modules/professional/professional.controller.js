@@ -3,8 +3,6 @@ import GovernorateModel from '../../../DB/models/governorate.model.js';
 import ReviewModel from '../../../DB/models/review.model.js'
 import { getProfessionalsSchema ,getProfessionalsByRatingSchema,searchProfessionalsByNameSchema} from "./professional.validation.js";
 
-
-
 //عرض المهنيين
 export const getProfessionals = async (req, res) => {
   
