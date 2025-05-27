@@ -3,109 +3,7 @@ import jwt from "jsonwebtoken";
 import workingHoursModel from '../../../../../DB/models/workingHours.model.js';
 import moment from "moment";
 import { addWorkingHoursSchema } from './ProfessionalWorkingHours.validation.js';
-
 //اضافة مواعيد
-/*export const addWorkingHours = async (req, res) => {
-  const { token } = req.headers;
-  const { id } = req.params;
-  const { workingHours } = req.body;
-
-  // تحقق من وجود التوكن
-  if (!token) {
-    return res.status(401).json({ message: "التوكن مفقود" });
-  }
-
-  // تحقق من صحة التوكن
-  let decoded;
-  try {
-    decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
-  } catch {
-    return res.status(401).json({ message: "توكن غير صالح" });
-  }
-
-  // تحقق أن التوكن يخص نفس الـ ID
-  if (decoded.id !== id) {
-    return res.status(403).json({ message: "غير مصرح لك بتنفيذ هذا الإجراء" });
-  }
-
-  // تحقق من صحة البيانات
-  if (!Array.isArray(workingHours) || workingHours.length === 0) {
-    return res.status(400).json({ message: "الرجاء إرسال مواعيد صحيحة" });
-  }
-
-  const validHours = workingHours.filter(hour =>
-    hour.day && hour.date && hour.startTime && hour.endTime && hour.startTime < hour.endTime
-  );
-
-  if (validHours.length === 0) {
-    return res.status(400).json({ message: "جميع المواعيد غير صالحة أو مفقودة" });
-  }
-
-  const newWorkingHours = await workingHoursModel.insertMany(
-    validHours.map(hour => ({
-      professional: id,
-      day: hour.day,
-      date: hour.date,
-      startTime: hour.startTime,
-      endTime: hour.endTime,
-      status: hour.status || "متاح",
-    }))
-  );
-
-  return res.status(201).json({
-    message: "تمت إضافة المواعيد بنجاح",
-    workingHours: newWorkingHours,
-  });
-};*/
-/*export const addWorkingHours = async (req, res) => {
-  const { token } = req.headers;
-  const { id } = req.params;
-  const { workingHours } = req.body;
-
-  // تحقق من وجود التوكن
-  if (!token) {
-    return res.status(401).json({ message: "التوكن مفقود" });
-  }
-
-  // تحقق من صحة التوكن
-  let decoded;
-  try {
-    decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
-  } catch {
-    return res.status(401).json({ message: "توكن غير صالح" });
-  }
-
-  // تحقق أن التوكن يخص نفس الـ ID
-  if (decoded.id !== id) {
-    return res.status(403).json({ message: "غير مصرح لك بتنفيذ هذا الإجراء" });
-  }
-
-  // التحقق من صحة البيانات عبر Joi
-  const { error } = addWorkingHoursSchema.validate({ workingHours }, { abortEarly: false });
-  if (error) {
-    return res.status(400).json({
-      message: "خطأ في البيانات المدخلة",
-      errors: error.details.map(e => e.message)
-    });
-  }
-
-  // إدخال المواعيد
-  const newWorkingHours = await workingHoursModel.insertMany(
-    workingHours.map(hour => ({
-      professional: id,
-      day: hour.day,
-      date: hour.date,
-      startTime: hour.startTime,
-      endTime: hour.endTime,
-      status: hour.status || "متاح",
-    }))
-  );
-
-  return res.status(201).json({
-    message: "تمت إضافة المواعيد بنجاح",
-    workingHours: newWorkingHours,
-  });
-};*/
 export const addWorkingHours = async (req, res) => {
   const { token } = req.headers;
   const { id } = req.params;
@@ -130,7 +28,7 @@ export const addWorkingHours = async (req, res) => {
   }
 
   // تحقق أن التوكن لمهني فقط
-  if (decoded.type !== "مهني") {
+  if (decoded.usertype !== "مهني") {
     return res.status(403).json({ message: "هذا الإجراء مسموح للمهنيين فقط" });
   }
 
