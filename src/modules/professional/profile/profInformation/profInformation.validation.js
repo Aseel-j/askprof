@@ -19,3 +19,12 @@ export const updateDescriptionSchema = joi.object({
     'string.max': 'الوصف لا يجب أن يتجاوز 500 حرف'
   })
 });
+//تعديل المحافظة
+export const updateGovernorateSchema = joi.object({
+  governorate: joi.string().min(2).required().messages({
+    "string.base": "اسم المحافظة يجب أن يكون نصًا",
+    "string.empty": "اسم المحافظة مطلوب",
+    "string.min": "اسم المحافظة يجب أن يحتوي على حرفين على الأقل",
+    "any.required": "حقل اسم المحافظة مطلوب"
+  })
+});

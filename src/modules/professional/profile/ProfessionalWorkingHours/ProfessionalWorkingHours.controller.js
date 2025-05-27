@@ -2,10 +2,12 @@
 import jwt from "jsonwebtoken";
 import workingHoursModel from '../../../../../DB/models/workingHours.model.js';
 import moment from "moment";
+import { addWorkingHoursSchema } from './ProfessionalWorkingHours.validation.js';
+
 
 
 //اضافة مواعيد
-export const addWorkingHours = async (req, res) => {
+/*export const addWorkingHours = async (req, res) => {
   const { token } = req.headers;
   const { id } = req.params;
   const { workingHours } = req.body;
@@ -56,92 +58,56 @@ export const addWorkingHours = async (req, res) => {
     message: "تمت إضافة المواعيد بنجاح",
     workingHours: newWorkingHours,
   });
-};
-//عرض المواعيد
-/*export const getWorkingHoursByPeriods = async (req, res) => {
-  const { id } = req.params;
-    // تحديد الفترات
-    const startOfWeek = moment().isoWeekday(6).startOf("day"); // بداية الأسبوع الحالي - السبت
-    const endOfWeek = moment(startOfWeek).add(6, "days").endOf("day"); // نهاية الجمعة
-
-    const startOfNextWeek = moment(startOfWeek).add(7, "days").startOf("day"); // السبت القادم
-    const endOfNextWeek = moment(startOfNextWeek).add(6, "days").endOf("day"); // الجمعة القادمة
-
-    const startOfMonth = moment().startOf("month").startOf("day");
-    const endOfMonth = moment().endOf("month").endOf("day");
-
-    // جلب مواعيد الشهر فقط لتقليل وقت المعالجة
-    const monthWorkingHours = await workingHoursModel.find({
-      professional: id,
-      date: {
-        $gte: startOfMonth.toDate(),
-        $lte: endOfMonth.toDate()
-      }
-    }).lean();
-
-    const currentWeek = [];
-    const nextWeek = [];
-    const currentMonth = [...monthWorkingHours]; // كل المواعيد في الشهر
-
-    // تقسيم المواعيد
-    for (const item of monthWorkingHours) {
-      const itemDate = moment(item.date).startOf("day");
-
-      if (itemDate.isBetween(startOfWeek, endOfWeek, null, "[]")) {
-        currentWeek.push(item);
-      } else if (itemDate.isBetween(startOfNextWeek, endOfNextWeek, null, "[]")) {
-        nextWeek.push(item);
-      }
-    }
-
-    return res.status(200).json({
-      message: "تم عرض المواعيد بنجاح",
-      currentWeek,
-      nextWeek,
-      currentMonth
-    });
-
-  
 };*/
-// عرض المواعيد للأسبوع الحالي والقادم فقط
-/*export const getWorkingHoursByPeriods = async (req, res) => {
+export const addWorkingHours = async (req, res) => {
+  const { token } = req.headers;
   const { id } = req.params;
+  const { workingHours } = req.body;
 
-  const startOfWeek = moment().isoWeekday(6).startOf("day"); // بداية السبت الحالي
-  const endOfNextWeek = moment(startOfWeek).add(13, "days").endOf("day"); // نهاية الجمعة القادمة
-
-  // جلب المواعيد بين السبت الحالي إلى الجمعة القادمة
-  const workingHours = await workingHoursModel.find({
-    professional: id,
-    date: {
-      $gte: startOfWeek.toDate(),
-      $lte: endOfNextWeek.toDate()
-    }
-  }).lean();
-
-  const currentWeek = [];
-  const nextWeek = [];
-
-  const endOfWeek = moment(startOfWeek).add(6, "days").endOf("day"); // نهاية الجمعة الحالية
-  const startOfNextWeek = moment(startOfWeek).add(7, "days").startOf("day"); // بداية السبت القادم
-  const endOfNextWeekRef = moment(startOfNextWeek).add(6, "days").endOf("day"); // نهاية الجمعة القادمة
-
-  for (const item of workingHours) {
-    const itemDate = moment(item.date).startOf("day");
-
-    if (itemDate.isBetween(startOfWeek, endOfWeek, null, "[]")) {
-      currentWeek.push(item);
-    } else if (itemDate.isBetween(startOfNextWeek, endOfNextWeekRef, null, "[]")) {
-      nextWeek.push(item);
-    }
+  // تحقق من وجود التوكن
+  if (!token) {
+    return res.status(401).json({ message: "التوكن مفقود" });
   }
 
-  return res.status(200).json({
-    message: "تم عرض المواعيد بنجاح",
-    currentWeek,
-    nextWeek
+  // تحقق من صحة التوكن
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
+  } catch {
+    return res.status(401).json({ message: "توكن غير صالح" });
+  }
+
+  // تحقق أن التوكن يخص نفس الـ ID
+  if (decoded.id !== id) {
+    return res.status(403).json({ message: "غير مصرح لك بتنفيذ هذا الإجراء" });
+  }
+
+  // التحقق من صحة البيانات عبر Joi
+  const { error } = addWorkingHoursSchema.validate({ workingHours }, { abortEarly: false });
+  if (error) {
+    return res.status(400).json({
+      message: "خطأ في البيانات المدخلة",
+      errors: error.details.map(e => e.message)
+    });
+  }
+
+  // إدخال المواعيد
+  const newWorkingHours = await workingHoursModel.insertMany(
+    workingHours.map(hour => ({
+      professional: id,
+      day: hour.day,
+      date: hour.date,
+      startTime: hour.startTime,
+      endTime: hour.endTime,
+      status: hour.status || "متاح",
+    }))
+  );
+
+  return res.status(201).json({
+    message: "تمت إضافة المواعيد بنجاح",
+    workingHours: newWorkingHours,
   });
-};*/
+};
 // عرض المواعيد لأربع أسابيع متتالية
 export const getWorkingHoursByPeriods = async (req, res) => {
   const { id } = req.params;
