@@ -4,8 +4,6 @@ import workingHoursModel from '../../../../../DB/models/workingHours.model.js';
 import moment from "moment";
 import { addWorkingHoursSchema } from './ProfessionalWorkingHours.validation.js';
 
-
-
 //اضافة مواعيد
 /*export const addWorkingHours = async (req, res) => {
   const { token } = req.headers;

@@ -1,4 +1,3 @@
-// validation/review.validation.js
 import Joi from "joi";
 
 export const addSiteReviewSchema = Joi.object({
