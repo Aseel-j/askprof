@@ -4,46 +4,6 @@ import professionalWorkModel from '../../../../../DB/models/professionalWork.mod
 import cloudinary from '../../../../utils/cloudinary.js';
 
 //اضافة عمل
-/*export const addProfessionalWork = async (req, res) => {
-  const { token } = req.headers;
-  const { id } = req.params;
-
-  if (!token) {
-    return res.status(401).json({ message: "التوكن مفقود" });
-  }
-
-  let decoded;
-  try {
-    decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
-  } catch (err) {
-    return res.status(401).json({ message: "توكن غير صالح" });
-  }
-
-  if (decoded.id !== id) {
-    return res.status(403).json({ message: "غير مصرح لك بتنفيذ هذا الإجراء" });
-  }
-
-  const professional = await professionalModel.findById(id);
-  if (!professional) {
-    return res.status(404).json({ message: "المهني غير موجود" });
-  }
-
-  const { placeWorkName, summaryAboutWork, description } = req.body;
-
-  if (!summaryAboutWork || !description) {
-    return res.status(400).json({ message: "الرجاء إدخال نبذة وتفاصيل عن العمل" });
-  }
-
-  const newWork = await professionalWorkModel.create({
-    professional: professional._id,
-    placeWorkName,
-    summaryAboutWork,
-    description
-  });
-
-  return res.status(201).json({ message: "تمت إضافة العمل بنجاح", work: newWork });
-};*/
-
 export const addProfessionalWork = async (req, res) => {
   const { token } = req.headers;
   const { id } = req.params;
@@ -92,22 +52,6 @@ export const addProfessionalWork = async (req, res) => {
   });
 };
 //عرض الاعمال 
-/*export const getProfessionalWorks = async (req, res) => {
-     const { id } = req.params;
-
-    // تحقق من وجود المهني
-    const professional = await professionalModel.findById(id);
-    if (!professional) {
-      return res.status(404).json({ message: "المهني غير موجود" });
-    }
-
-    // جلب الأعمال المرتبطة بهذا المهني
-    const works = await professionalWorkModel.find({ professional: id }).sort({ date: -1 });
-    const total = works.length;
-
-    return res.status(200).json({message: "تم جلب الأعمال بنجاح",total,works});
- 
-};*/
 export const getProfessionalWorks = async (req, res) => {
   const { id } = req.params;
 
@@ -136,7 +80,64 @@ export const getProfessionalWorks = async (req, res) => {
     works: formattedWorks
   });
 };
+//تعديل على العمل 
+export const editProfessionalWork = async (req, res) => {
+  const { token } = req.headers;
+  const { id } = req.params; // هذا id العمل
 
+  if (!token) {
+    return res.status(401).json({ message: "التوكن مفقود" });
+  }
+
+  // فك التوكن
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
+  } catch (err) {
+    return res.status(401).json({ message: "توكن غير صالح" });
+  }
+
+  // الحصول على العمل
+  const work = await professionalWorkModel.findById(id);
+  if (!work) {
+    return res.status(404).json({ message: "العمل غير موجود" });
+  }
+
+  // التأكد أن صاحب العمل هو نفسه المهني
+  if (work.professional.toString() !== decoded.id) {
+    return res.status(403).json({ message: "غير مصرح لك بتعديل هذا العمل" });
+  }
+
+  // تجهيز التعديلات
+  const updates = {};
+  const body = req.body || {};
+
+  if (body.placeWorkName) updates.placeWorkName = body.placeWorkName;
+  if (body.summaryAboutWork) updates.summaryAboutWork = body.summaryAboutWork;
+  if (body.description) updates.description = body.description;
+
+  // رفع الصور الجديدة إن وُجدت
+  if (req.files && req.files.length > 0) {
+    try {
+      const uploadResults = await Promise.all(
+        req.files.map((file) => cloudinary.uploader.upload(file.path))
+      );
+      updates.images = uploadResults.map((result) => result.secure_url);
+    } catch (error) {
+      return res.status(500).json({ message: "حدث خطأ أثناء رفع الصور", error });
+    }
+  }
+
+  // التحديث
+  const updatedWork = await professionalWorkModel.findByIdAndUpdate(id, updates, {
+    new: true,
+  });
+
+  return res.status(200).json({
+    message: "تم تعديل العمل بنجاح",
+    work: updatedWork,
+  });
+};
 //حذف العمل 
 export const deleteWork = async (req, res, next) => {
     const { token } = req.headers;

@@ -5,6 +5,7 @@ const deletedProfessionalSchema = new Schema({
   email: String,
   phoneNumber: String,
   professionField: String,
+  rejectionReason: { type: String },
   governorate: { type: Schema.Types.ObjectId, ref: "Governorate" },
 }, { timestamps: true });
 

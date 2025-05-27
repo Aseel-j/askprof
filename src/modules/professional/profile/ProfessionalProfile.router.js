@@ -30,6 +30,8 @@ router.get('/getProfessionalDescription/:id',asyncHandler(controller2.getProfess
 router.post('/addProfessionalWork/:id',fileUpload(fileValidation.image).array('image'),validation(addProfessionalWorkSchema),asyncHandler(controller.addProfessionalWork));
 //عرض الاعمال
 router.get('/getProfessionalWorks/:id',asyncHandler(controller.getProfessionalWorks));
+//تعديل على العمل
+router.put('/editProfessionalWork/:id',fileUpload(fileValidation.image).array('image'),asyncHandler(controller.editProfessionalWork));
 //حذف عمل 
 router.delete('/deleteWork/:id',asyncHandler(controller.deleteWork));
 //اضافة مواعيد 
