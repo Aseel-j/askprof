@@ -1,8 +1,6 @@
 import { Router } from 'express';
 import * as controller from '../admin/Professionaloperations/Professionaloperations.controller.js';
 import { asyncHandler } from '../../utils/catchError.js';
-//import validation from '../../middleware/validation.js';
-//import bookingSchema from './Booking.validation.js';
 import auth from '../../middleware/admin.js';
 import * as controller2 from '../governorate/governorate.controller.js'
 
