@@ -238,7 +238,7 @@ export const addWorkingHours = async (req, res) => {
   });
 };*/
 // عرض المواعيد لأربع أسابيع متتالية بدون التواريخ التي مضت
-export const getWorkingHoursByPeriods = async (req, res) => {
+/*export const getWorkingHoursByPeriods = async (req, res) => {
   const { id } = req.params;
 
   // جعل السبت بداية الأسبوع الحالي
@@ -303,8 +303,88 @@ export const getWorkingHoursByPeriods = async (req, res) => {
     week3,
     week4
   });
-};
+};*/
+export const getWorkingHoursByPeriods = async (req, res) => {
+  const { id } = req.params;
 
+  const now = moment(); // الوقت الحالي بدقة (تاريخ + ساعة + دقيقة)
+
+  // جعل السبت بداية الأسبوع الحالي
+  const today = moment().startOf("day");
+  const dayOfWeek = today.isoWeekday(); // 1=الإثنين ... 6=السبت
+  // حساب عدد الأيام منذ السبت
+  const daysSinceSaturday = (dayOfWeek >= 6) ? (dayOfWeek - 6) : (dayOfWeek + 1);
+  const startOfWeek1 = today.clone().subtract(daysSinceSaturday, "days");
+
+  // نهاية الأسبوع الرابع (27 يوم من بداية الأسبوع الأول)
+  const endOfWeek4 = moment(startOfWeek1).add(27, "days").endOf("day");
+
+  // جلب المواعيد من قاعدة البيانات بين بداية الأسبوع الأول ونهاية الأسبوع الرابع
+  const workingHours = await workingHoursModel.find({
+    professional: id,
+    date: {
+      $gte: startOfWeek1.toDate(),
+      $lte: endOfWeek4.toDate()
+    }
+  }).lean();
+
+  // تحضير المصفوفات للأسابيع الأربعة
+  const week1 = [];
+  const week2 = [];
+  const week3 = [];
+  const week4 = [];
+
+  // تحديد بدايات ونهايات الأسابيع الأربعة
+  const start1 = moment(startOfWeek1).startOf("day");
+  const end1 = moment(start1).add(6, "days").endOf("day");
+
+  const start2 = moment(start1).add(7, "days").startOf("day");
+  const end2 = moment(start2).add(6, "days").endOf("day");
+
+  const start3 = moment(start2).add(7, "days").startOf("day");
+  const end3 = moment(start3).add(6, "days").endOf("day");
+
+  const start4 = moment(start3).add(7, "days").startOf("day");
+  const end4 = moment(start4).add(6, "days").endOf("day");
+
+  for (const item of workingHours) {
+    // بناء الوقت الكامل للموعد: التاريخ + وقت البداية
+    let itemDateTime = moment(item.date);
+
+    if (item.startTime) {
+      // افتراض أن startTime مثل "14:30"
+      const [hour, minute] = item.startTime.split(":").map(Number);
+      itemDateTime = itemDateTime.set({ hour, minute, second: 0, millisecond: 0 });
+    } else {
+      // إذا ما في وقت محدد، نعتبر بداية اليوم (00:00)
+      itemDateTime = itemDateTime.startOf("day");
+    }
+
+    // تجاهل المواعيد التي مضى وقتها (بما في ذلك اليوم إذا مضى الوقت)
+    if (itemDateTime.isBefore(now)) {
+      continue;
+    }
+
+    // تصنيف الموعد في الأسبوع المناسب
+    if (itemDateTime.isBetween(start1, end1, null, "[]")) {
+      week1.push(item);
+    } else if (itemDateTime.isBetween(start2, end2, null, "[]")) {
+      week2.push(item);
+    } else if (itemDateTime.isBetween(start3, end3, null, "[]")) {
+      week3.push(item);
+    } else if (itemDateTime.isBetween(start4, end4, null, "[]")) {
+      week4.push(item);
+    }
+  }
+
+  return res.status(200).json({
+    message: "تم عرض المواعيد بنجاح",
+    week1,
+    week2,
+    week3,
+    week4
+  });
+};
 //حذف الموعد
 export const deleteWorkingHour = async (req, res) => {
   const { id } = req.params;

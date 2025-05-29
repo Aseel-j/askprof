@@ -7,7 +7,7 @@ import ReviewRouter from './modules/review/review.router.js';
 import ProfessionalRouter from './modules/professional/professional.router.js';
 import ProfessionalProfileRouter from './modules/professional/profile/ProfessionalProfile.router.js';
 import BookingRouter from './modules/Booking/Booking.router.js';
-
+import adminRouter from '../src/modules/admin/admin.router.js'
 
 const initApp = async(app,express)=>{
     app.use(express.json());
@@ -31,8 +31,8 @@ const initApp = async(app,express)=>{
     app.use('/ProfessionalProfile',ProfessionalProfileRouter);
      //ادارة الحجوزات
     app.use('/Booking',BookingRouter);
-//Admin
- //app.use('/admin', adminRouter);
+     //Admin
+    app.use('/admin', adminRouter);
 
 
 //في حال دخل رابط خطا 

@@ -20,3 +20,17 @@ export const getGovernorates = async (req, res) => {
     const count = governorates.length;
     return res.status(200).json({ message: "success", governorates,count});
   };
+
+export const deleteGovernorate = async (req, res) => {
+  const { id } = req.params;
+
+    const governorate = await GovernorateModel.findByIdAndDelete(id);
+
+    if (!governorate) {
+      return res.status(404).json({ message: "المحافظة غير موجودة" });
+    }
+
+    return res.status(200).json({ message: "تم حذف المحافظة بنجاح", deleted: governorate });
+ 
+};
+

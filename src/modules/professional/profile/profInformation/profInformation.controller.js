@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import GovernorateModel from '../../../../../DB/models/governorate.model.js';
 
 //تعديل بيانات البروفايل
-/*export const updateProfessionalProfile = async (req, res) => {
+export const updateProfessionalProfile = async (req, res) => {
   const { token } = req.headers;
   const { id } = req.params;
 
@@ -36,7 +36,6 @@ import GovernorateModel from '../../../../../DB/models/governorate.model.js';
     }
     professional.governorate = governoratename._id;
   }
-
   if (username) professional.username = username;
   if (anotheremail) professional.anotheremail = anotheremail;
   if (bio) professional.bio = bio;
@@ -50,8 +49,8 @@ import GovernorateModel from '../../../../../DB/models/governorate.model.js';
     message: "تم تحديث الملف الشخصي بنجاح",
     professional,
   });
-};*/
-export const updateProfessionalProfile = async (req, res) => {
+};
+/*export const updateProfessionalProfile = async (req, res) => {
   const { token } = req.headers;
   const { id } = req.params;
 
@@ -90,9 +89,9 @@ export const updateProfessionalProfile = async (req, res) => {
     message: "تم تحديث الملف الشخصي بنجاح",
     professional,
   });
-};
+};*/
 //تعديل المحافظة 
-export const updateProfessionalGovernorate = async (req, res) => {
+/*export const updateProfessionalGovernorate = async (req, res) => {
   const { token } = req.headers;
   const { id } = req.params;
   const { governorate } = req.body;
@@ -129,7 +128,7 @@ export const updateProfessionalGovernorate = async (req, res) => {
     message: "تم تحديث المحافظة بنجاح",
     professional,
   });
-};
+};*/
 //عرض بيانات الملف الشخص
 export const getProfessionalProfile = async (req, res) => {
   const { id } = req.params; // الحصول على ID المهني من الـ params
@@ -174,7 +173,6 @@ export const getProfessionalProfile = async (req, res) => {
 
   return res.status(200).json(filteredProfile);
 };
-
 // اضافة شرح عن المهني
  export const updateProfessionalDescription = async (req, res) => {
   const { token } = req.headers;

@@ -14,6 +14,10 @@ const adminSchema = new mongoose.Schema({
   name: {
     type: String,
   },
+  role:{
+     type: String,
+      enum:["admin"],
+  }
 }, {
   timestamps: true,
 });
