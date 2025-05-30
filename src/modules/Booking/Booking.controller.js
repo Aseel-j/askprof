@@ -202,7 +202,7 @@ export const createBooking = async (req, res) => {
   });
 };
 //عرض الحجوزات 
-export const getBookings = async (req, res) => {
+/*export const getBookings = async (req, res) => {
   const { token } = req.headers;
   if (!token) return res.status(401).json({ message: "التوكن مفقود" });
 
@@ -266,6 +266,89 @@ export const getBookings = async (req, res) => {
       startTime: b.startTime,
       endTime: b.endTime,
       time: `${b.startTime}-${b.endTime}`,  // دمج الوقت
+    }));
+
+  } else {
+    return res.status(403).json({ message: "نوع المستخدم غير مسموح" });
+  }
+
+  return res.json({ bookings: formatted });
+};*/
+export const getBookings = async (req, res) => {
+  const { token } = req.headers;
+  if (!token) return res.status(401).json({ message: "التوكن مفقود" });
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
+  } catch {
+    return res.status(401).json({ message: "توكن غير صالح" });
+  }
+
+  const userId = decoded.id;
+
+  // جلب المستخدم والمهني بالتوازي
+  const [user, professional] = await Promise.all([
+    userModel.findById(userId).select("usertype"),
+    professionalModel.findById(userId).select("usertype governorate").populate("governorate", "name"),
+  ]);
+
+  if (!user && !professional)
+    return res.status(404).json({ message: "المستخدم غير موجود" });
+
+  // تحديد بداية اليوم (منتصف الليل) لتصفية التواريخ
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let bookings = [];
+  let formatted = [];
+
+  //  إذا كان مهني
+  if (professional && professional.usertype === "مهني") {
+    bookings = await ActiveBookingModel.find({
+      professionalId: userId,
+      bookingDate: { $gte: today } // الحجوزات اليوم وما بعده
+    })
+      .populate("userId", "username email phoneNumber")
+      .sort({ bookingDate: -1 })
+      .lean();
+
+    formatted = bookings.map(b => ({
+      bookingId: b._id.toString(),
+      userName: b.userId?.username ?? "غير معروف",
+      userEmail: b.userId?.email ?? "غير معروف",
+      userPhone: b.userId?.phoneNumber ?? "غير معروف",
+      bookingDetails: b.bookingDetails,
+      bookingDate: b.bookingDate,
+      startTime: b.startTime,
+      endTime: b.endTime,
+      time: `${b.startTime}-${b.endTime}`,
+    }));
+
+  //  إذا كان مستخدم
+  } else if (user && user.usertype === "مستخدم") {
+    bookings = await ActiveBookingModel.find({
+      userId,
+      bookingDate: { $gte: today } // الحجوزات اليوم وما بعده
+    })
+      .populate({
+        path: "professionalId",
+        select: "username professionField governorate",
+        populate: { path: "governorate", select: "name" },
+      })
+      .sort({ bookingDate: -1 })
+      .lean();
+
+    formatted = bookings.map(b => ({
+      bookingId: b._id.toString(),
+      professionalName: b.professionalId?.username ?? "غير معروف",
+      professionField: b.professionalId?.professionField ?? "غير معروف",
+      governorate: b.professionalId?.governorate?.name ?? "غير معروف",
+      bookingDetails: b.bookingDetails,
+      bookingDate: b.bookingDate,
+      startTime: b.startTime,
+      endTime: b.endTime,
+      time: `${b.startTime}-${b.endTime}`,
     }));
 
   } else {
@@ -404,6 +487,83 @@ export const getDeletedBookings = async (req, res) => {
 
   const userId = decoded.id;
 
+  const [user, professional] = await Promise.all([
+    userModel.findById(userId).select("usertype"),
+    professionalModel.findById(userId).select("usertype governorate").populate("governorate", "name"),
+  ]);
+
+  if (!user && !professional)
+    return res.status(404).json({ message: "المستخدم غير موجود" });
+
+  // تحديد بداية اليوم الحالي
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // تصفير الوقت لمقارنة دقيقة
+
+  let bookings = [];
+  let formatted = [];
+
+  if (professional && professional.usertype === "مهني") {
+    bookings = await InactiveBookingModel.find({
+      professionalId: userId,
+      bookingDate: { $gte: today }, // الحجوزات من اليوم وما بعده فقط
+    })
+      .populate("userId", "username email phoneNumber")
+      .lean();
+
+    formatted = bookings.map(b => ({
+      bookingId: b._id,
+      userName: b.userId?.username || "غير معروف",
+      userEmail: b.userId?.email || "غير معروف",
+      userPhone: b.userId?.phoneNumber || "غير معروف",
+      bookingDetails: b.bookingDetails,
+      bookingDate: b.bookingDate,
+      time: `${b.startTime}-${b.endTime}`,
+      cancellationReason: b.cancellationReason || "غير محدد",
+    }));
+
+  } else if (user && user.usertype === "مستخدم") {
+    bookings = await InactiveBookingModel.find({
+      userId,
+      bookingDate: { $gte: today }, // الحجوزات من اليوم وما بعده فقط
+    })
+      .populate({
+        path: "professionalId",
+        select: "username professionField governorate",
+        populate: { path: "governorate", select: "name" },
+      })
+      .lean();
+
+    formatted = bookings.map(b => ({
+      bookingId: b._id,
+      professionalName: b.professionalId?.username || "غير معروف",
+      professionField: b.professionalId?.professionField || "غير معروف",
+      governorate: b.professionalId?.governorate?.name || "غير معروف",
+      bookingDetails: b.bookingDetails,
+      bookingDate: b.bookingDate,
+      time: `${b.startTime}-${b.endTime}`,
+      cancellationReason: b.cancellationReason || "غير محدد",
+    }));
+
+  } else {
+    return res.status(403).json({ message: "نوع المستخدم غير مسموح" });
+  }
+
+  return res.json({ deletedBookings: formatted });
+};
+/*export const getDeletedBookings = async (req, res) => {
+  const { token } = req.headers;
+
+  if (!token) return res.status(401).json({ message: "التوكن مفقود" });
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
+  } catch {
+    return res.status(401).json({ message: "توكن غير صالح" });
+  }
+
+  const userId = decoded.id;
+
   // جلب المستخدم والمهني بالتوازي لتقليل الزمن
   const [user, professional] = await Promise.all([
     userModel.findById(userId).select("usertype"),
@@ -459,4 +619,4 @@ export const getDeletedBookings = async (req, res) => {
   }
 
   return res.json({ deletedBookings: formatted });
-};
+};*/
