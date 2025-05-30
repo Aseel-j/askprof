@@ -130,7 +130,7 @@ export const updateProfessionalProfile = async (req, res) => {
   });
 };*/
 //عرض بيانات الملف الشخص
-export const getProfessionalProfile = async (req, res) => {
+/*export const getProfessionalProfile = async (req, res) => {
   const { id } = req.params; // الحصول على ID المهني من الـ params
 
   const professional = await professionalModel
@@ -151,6 +151,7 @@ export const getProfessionalProfile = async (req, res) => {
     filteredProfile.city = profileObj.governorate.name;
   }
 
+
   // الحقول التي تريدها بما في ذلك profilePicture بنفس الطريقة
   const otherFields = [
     "username",
@@ -158,7 +159,7 @@ export const getProfessionalProfile = async (req, res) => {
     "phoneNumber",
     "anotheremail",
     "professionField",
-    "profilePicture", // أضف profilePicture هنا لتُرجعها مع باقي الحقول
+   
   ];
 
   for (const field of otherFields) {
@@ -172,6 +173,35 @@ export const getProfessionalProfile = async (req, res) => {
   filteredProfile.id = profileObj._id;
 
   return res.status(200).json(filteredProfile);
+};*/
+export const getProfessionalProfile = async (req, res) => {
+  const { id } = req.params;
+
+  const professional = await professionalModel
+    .findById(id)
+    .select("username bio phoneNumber anotheremail professionField profilePicture city governorate")
+    .populate("governorate", "name");
+
+  if (!professional) {
+    return res.status(404).json({ message: "المهني غير موجود" });
+  }
+
+  const profileObj = professional.toObject();
+
+  // تجهيز الرد النهائي
+  const result = {
+    id: professional._id,
+    username: professional.username,
+    bio: professional.bio,
+    phoneNumber: professional.phoneNumber,
+    anotheremail: professional.anotheremail,
+    professionField: professional.professionField,
+    profilePicture: professional.profilePicture,
+    city: professional.city?.trim() || professional.governorate?.name || "",
+    governorate: professional.governorate?.name || "",
+  };
+
+  return res.status(200).json(result);
 };
 // اضافة شرح عن المهني
  export const updateProfessionalDescription = async (req, res) => {
