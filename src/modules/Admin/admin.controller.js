@@ -35,7 +35,6 @@ async function createAdmin() {
     process.exit(1);
   }
 }
-
 createAdmin();
 
 

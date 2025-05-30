@@ -19,6 +19,8 @@ router.put('/uploadVideo/:id',fileUpload(fileValidation.video).single('video'),a
 router.get('/getProfilePicture/:id',asyncHandler(controller3.getProfilePicture));
 //عرض الفيديو
 router.get('/getVideo/:id',asyncHandler(controller3.getVideo));
+//حذف الفيديو
+router.delete('/deleteVideo/:id',asyncHandler(controller3.deleteVideo));
 //تحديث بيانات الملف الشخصي 
 router.put('/updateProfessionalProfile/:id',validation(updateProfessionalProfileSchema),asyncHandler(controller2.updateProfessionalProfile));
 //تعديل محافظة المهني 

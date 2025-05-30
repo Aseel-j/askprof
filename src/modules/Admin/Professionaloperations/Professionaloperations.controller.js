@@ -70,7 +70,6 @@ export const approveProfessional = async (req, res) => {
       professional: updatedProfessional,
     });
 };
-
 //حذف المهني
 export const deleteProfessional = async (req, res) => {
   const { professionalId } = req.params;
@@ -127,7 +126,6 @@ export const deleteProfessional = async (req, res) => {
     return res.status(500).json({ message: "خطأ في الخادم", error: err.message });
   }
 };
-
 //استرجاع المهني
 export const restoreDeletedProfessional = async (req, res) => {
   const { deletedId } = req.params;

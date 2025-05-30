@@ -98,6 +98,41 @@ export const uploadVideo = async (req, res) => {
     videoUrl: secure_url,
   });
 };
+// حذف الفيديو من الملف الشخصي
+export const deleteVideo = async (req, res) => {
+  const { token } = req.headers;
+  const { id } = req.params;
+
+  if (!token) {
+    return res.status(401).json({ message: "التوكن مفقود" });
+  }
+    const decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
+
+    if (decoded.id !== id) {
+      return res.status(403).json({ message: "غير مصرح لك بحذف هذا الفيديو" });
+    }
+
+    const professional = await professionalModel.findById(id);
+    if (!professional) {
+      return res.status(404).json({ message: "المهني غير موجود" });
+    }
+
+    if (!professional.video) {
+      return res.status(400).json({ message: "لا يوجد فيديو لحذفه" });
+    }
+
+    const publicId = professional.video.split("/").pop().split(".")[0];
+
+    // حذف الفيديو من Cloudinary
+    await cloudinary.uploader.destroy(publicId, { resource_type: "video" });
+
+    // حذف الفيديو من قاعدة البيانات
+    professional.video = "";
+    await professional.save();
+
+    return res.status(200).json({ message: "تم حذف الفيديو بنجاح" });
+
+};
 //ارجاع الصورة
 export const getProfilePicture = async (req, res) => {
   const { id } = req.params;  // الحصول على ID المهني من الـ params
