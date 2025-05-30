@@ -3,12 +3,16 @@ import * as controller from './Professionaloperations/Professionaloperations.con
 import { asyncHandler } from '../../utils/catchError.js';
 import auth from '../../middleware/admin.js';
 import * as controller2 from '../governorate/governorate.controller.js'
-
-
+import validation from '../../middleware/validation.js';
+import { loginSchema } from './admin.validation.js';
+import * as controller1 from './admin.controller.js';
 const router = Router();
-
-//عرض المهنيين
-router.get('/getAllProfessionals',asyncHandler(auth()),asyncHandler(controller.getAllProfessionals));
+//تسجيل الدخول 
+router.post('/loginAdmin',validation(loginSchema),asyncHandler(controller1.loginAdmin));
+// عرض المهنيين المهنيين المقبولين
+router.get('/getApprovedProfessionals',asyncHandler(auth()),asyncHandler(controller.getApprovedProfessionals));
+//عرض المهنيين قيد الانتظار
+router.get('/getUnapprovedProfessionals',asyncHandler(auth()),asyncHandler(controller.getUnapprovedProfessionals));
 //قبول المهني
 router.put('/approveProfessional/:id',asyncHandler(auth()),asyncHandler(controller.approveProfessional));
 //الغاء الحجز 

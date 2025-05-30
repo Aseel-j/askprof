@@ -1,41 +1,34 @@
-import mongoose from "mongoose";
-import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import AdminModel from "../../../DB/models/admin.model.js";
+import jwt from 'jsonwebtoken';
 
-dotenv.config();
+//تسجيل الدخول 
+export const loginAdmin = async (req, res, next) => {
+  const { email, password } = req.body;
 
-async function createAdmin() {
-  try {
-    await mongoose.connect(process.env.DB, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    const adminEmail = process.env.ADMIN_EMAIL || "admin@example.com";
-    const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
-    const adminName = process.env.ADMIN_NAME || "Super Admin";
-    const existingAdmin = await AdminModel.findOne({ email: adminEmail });
-    if (existingAdmin) {
-      console.log("Admin already exists:", adminEmail);
-      process.exit(0);
-    }
-    const saltRounds = parseInt(process.env.SALT_ROUND) || 10;
-    const hashedPassword = await bcrypt.hash(adminPassword, 8);
-
-    const admin = new AdminModel({
-      email: adminEmail,
-      password: hashedPassword,
-      name: adminName,
-    });
-    await admin.save();
-    console.log("Admin created successfully with email:", adminEmail);
-    process.exit(0);
-  } catch (error) {
-    console.error("Error creating admin:", error);
-    process.exit(1);
+  // البحث عن الأدمن بالبريد الإلكتروني
+  const admin = await AdminModel.findOne({ email });
+  if (!admin) {
+    return res.status(400).json({ message: "خطأ في البريد الإلكتروني أو كلمة المرور" });
   }
-}
-createAdmin();
 
+  // التحقق من كلمة المرور
+  const isMatch = bcrypt.compareSync(password, admin.password);
+  if (!isMatch) {
+    return res.status(400).json({ message: "خطأ في البريد الإلكتروني أو كلمة المرور" });
+  }
+
+  // توليد التوكن
+  const token = jwt.sign(
+    {
+      id: admin._id,
+      name: admin.name,
+      role: "admin"
+    },
+    process.env.LOGIN_SIGNAL
+  );
+
+  return res.status(200).json({ message: "تم تسجيل الدخول بنجاح", token });
+};
 
 //node src/modules/Admin/admin.controller.js
