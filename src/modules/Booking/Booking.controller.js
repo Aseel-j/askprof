@@ -240,6 +240,8 @@ export const getBookings = async (req, res) => {
       userPhone: b.userId?.phoneNumber ?? "غير معروف",
       bookingDetails: b.bookingDetails,
       bookingDate: b.bookingDate,
+      startTime: b.startTime,
+      endTime: b.endTime,
       time: `${b.startTime}-${b.endTime}`,  // دمج الوقت
     }));
 
@@ -261,6 +263,8 @@ export const getBookings = async (req, res) => {
       governorate: b.professionalId?.governorate?.name ?? "غير معروف",
       bookingDetails: b.bookingDetails,
       bookingDate: b.bookingDate,
+      startTime: b.startTime,
+      endTime: b.endTime,
       time: `${b.startTime}-${b.endTime}`,  // دمج الوقت
     }));
 
