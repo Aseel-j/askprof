@@ -1,6 +1,8 @@
 import bcrypt from "bcrypt";
 import AdminModel from "../../../DB/models/admin.model.js";
 import jwt from 'jsonwebtoken';
+import { customAlphabet } from 'nanoid';
+import { sendEmail } from "../../utils/SendEmail.js";
 
 //تسجيل الدخول 
 export const loginAdmin = async (req, res, next) => {
@@ -30,5 +32,54 @@ export const loginAdmin = async (req, res, next) => {
 
   return res.status(200).json({ message: "تم تسجيل الدخول بنجاح", token });
 };
+//ارسال رمز تحقق
+export const SendCode = async (req, res, next) => {
+  const { email } = req.body;
+   const code = customAlphabet('1234567890abcdefABCDEF', 6)();
+const expireTime = new Date(Date.now() + 5 * 60 * 1000); // بعد 5 دقائق
 
+  // البحث عن المستخدم أو المهني أو الأدمن
+  let user = await AdminModel.findOne({ email });
+  if (!user) {
+    return res.status(404).json({ message: "البريد الإلكتروني غير مسجل" });
+  }
+  // حفظ الكود وصلاحية الكود
+  user.sendCode = code;
+  user.codeExpire = expireTime;
+  await user.save();
+
+  // إرسال الكود بالبريد الإلكتروني
+  const html = `<h2>رمز التحقق هو: ${code}</h2><p>صالح لمدة 10 دقائق فقط.</p>`;
+  await sendEmail(email, 'تغيير كلمة المرور', html);
+
+  return res.status(200).json({ message: "تم إرسال رمز التحقق إلى بريدك الإلكتروني" });
+};
+//تغيير كلمة المرور
+export const resetPassword = async (req, res, next) => {
+  const { email, code, password } = req.body;
+
+  const user = await AdminModel.findOne({ email });
+  if (!user) {
+    return res.status(400).json({ message: "البريد الإلكتروني غير صحيح" });
+  }
+
+  if (!user.sendCode || user.sendCode !== code) {
+    return res.status(400).json({ message: "رمز التحقق غير صحيح" });
+  }
+
+  if (!user.codeExpire || user.codeExpire < new Date()) {
+    user.sendCode = null;
+    user.codeExpire = null;
+    await user.save();
+    return res.status(400).json({ message: "انتهت صلاحية رمز التحقق" });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, parseInt(process.env.SALT_ROUND));
+  user.password = hashedPassword;
+  user.sendCode = null;
+  user.codeExpire = null;
+  await user.save();
+
+  return res.status(200).json({ message: "تم تغيير كلمة المرور بنجاح" });
+};
 //node src/modules/Admin/admin.controller.js

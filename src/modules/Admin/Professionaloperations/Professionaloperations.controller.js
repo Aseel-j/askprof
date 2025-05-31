@@ -3,54 +3,6 @@ import ReviewModel from "../../../../DB/models/review.model.js";
 import DeletedProfessionalModel from "../../../../DB/models/deletedProfessional.model.js";
 import { sendEmail } from "../../../utils/SendEmail.js";
 //عرض حميع المهنيين
-/*export const getAllProfessionals = async (req, res, next) => {
- const professionals = await professionalModel.find({})
-    .select("username birthdate gender professionField email phoneNumber originalGovernorate anotheremail isApproved city confirmEmail description bio governorate")
-    .populate("governorate", "name")
-    .populate("originalGovernorate", "name")
-    .lean();
-
-  const professionalIds = professionals.map(p => p._id);
-
-  const reviews = await ReviewModel.aggregate([
-    { $match: { professional: { $in: professionalIds } } },
-    {
-      $group: {
-        _id: "$professional",
-        averageRating: { $avg: "$rating" }
-      }
-    }
-  ]);
-
-  const ratingMap = new Map(
-    reviews.map(r => [r._id.toString(), Number(r.averageRating.toFixed(1))])
-  );
-
-  const result = professionals.map(p => ({
-    _id: p._id,
-    username: p.username,
-    birthdate: p.birthdate,
-    gender: p.gender,
-    professionField: p.professionField,
-    email: p.email,
-    phoneNumber: p.phoneNumber,
-    originalGovernorate: p.originalGovernorate?.name ?? "غير محددة",
-    anotheremail: p.anotheremail,
-    isApproved: p.isApproved,
-    city: p.city,
-    confirmEmail: p.confirmEmail,
-    description: p.description,
-    bio: p.bio,
-    governorate: p.governorate?.name ?? "غير محددة",
-    rating: ratingMap.get(p._id.toString()) ?? "لا يوجد تقييمات"
-  }));
-
-  res.status(200).json({
-    message: "تم جلب جميع بيانات المهنيين بنجاح",
-    total: result.length,
-    professionals: result
-  });
-};*/
 export const getApprovedProfessionals = async (req, res, next) => {
   const professionals = await professionalModel.find({ isApproved: true })
     .select("username birthdate gender professionField email phoneNumber originalGovernorate anotheremail isApproved city confirmEmail description bio governorate")
@@ -302,4 +254,15 @@ export const getAllReviews = async (req, res) => {
 
   return res.status(200).json({ message: "success", reviews: formattedReviews });
 };
+//عرض المهنيين المحذوفين
 
+export const getDeletedProfessionals = async (req, res, next) => {
+  const deletedProfessionals = await DeletedProfessionalModel.find()
+    .populate("governorate", "name")
+    .populate("originalGovernorate", "name");
+
+  res.status(200).json({
+    message: "تم جلب المهنيين المحذوفين بنجاح",
+    data: deletedProfessionals
+  });
+};

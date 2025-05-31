@@ -30,6 +30,6 @@ export const SendCodeSchema = joi.object({
 export const resetPasswordSchema = joi.object({ 
     email:joi.string().email().required(), 
     password: joi.string().min(6).pattern(/(?=.*[A-Z])/).required(),
-    code: joi.string().length(4).required(),
+    code: joi.string().length(6).required(),
     });
     

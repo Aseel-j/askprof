@@ -47,6 +47,7 @@ const userSchema = new Schema({
      type: String,
      default:null,
      },
+     codeExpire: Date,
 },{
     timestamps:true,
 });

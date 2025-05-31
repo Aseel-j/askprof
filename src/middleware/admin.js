@@ -12,5 +12,4 @@ const auth=()=>{
     next();
 }
 }
-
 export default auth;

@@ -17,7 +17,9 @@ const adminSchema = new mongoose.Schema({
   role:{
      type: String,
       enum:["admin"],
-  }
+  },
+  sendCode: String,
+  codeExpire: Date,
 }, {
   timestamps: true,
 });
