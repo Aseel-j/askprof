@@ -15,11 +15,16 @@ export const addGovernorate = async (req, res) => {
     return res.status(201).json({ message: "تمت إضافة المحافظة بنجاح", data: newGovernorate });
   };
 
-export const getGovernorates = async (req, res) => {
+/*export const getGovernorates = async (req, res) => {
     const governorates = await GovernorateModel.find().select("name -_id");
     const count = governorates.length;
     return res.status(200).json({ message: "success", governorates,count});
-  };
+  };*/
+export const getGovernorates = async (req, res) => {
+  const governorates = await GovernorateModel.find().select("name");
+  const count = governorates.length;
+  return res.status(200).json({ message: "success", governorates, count });
+};
 
 export const deleteGovernorate = async (req, res) => {
   const { id } = req.params;
@@ -33,4 +38,5 @@ export const deleteGovernorate = async (req, res) => {
     return res.status(200).json({ message: "تم حذف المحافظة بنجاح", deleted: governorate });
  
 };
+
 

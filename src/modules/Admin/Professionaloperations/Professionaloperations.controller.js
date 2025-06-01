@@ -255,7 +255,6 @@ export const getAllReviews = async (req, res) => {
   return res.status(200).json({ message: "success", reviews: formattedReviews });
 };
 //عرض المهنيين المحذوفين
-
 export const getDeletedProfessionals = async (req, res, next) => {
   const deletedProfessionals = await DeletedProfessionalModel.find()
     .populate("governorate", "name")
