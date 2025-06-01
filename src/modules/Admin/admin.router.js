@@ -34,5 +34,7 @@ router.delete('/deleteGovernorate/:id',asyncHandler(auth()),asyncHandler(control
 router.post('/sendCode',validation(SendCodeSchema),asyncHandler(controller1.SendCode));
 //تغيير كلمة المرور 
 router.post('/resetPassword',validation(resetPasswordSchema),asyncHandler(controller1.resetPassword));
+//عرض معدل التقييمات وعددهن للموقع
+router.get('/getAvgReviewStats',asyncHandler(auth()),asyncHandler(controller1.getAvgReviewStats));
 
 export default router;

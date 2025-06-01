@@ -3,7 +3,7 @@ import AdminModel from "../../../DB/models/admin.model.js";
 import jwt from 'jsonwebtoken';
 import { customAlphabet } from 'nanoid';
 import { sendEmail } from "../../utils/SendEmail.js";
-
+import SiteReviewModel from '../../../DB/models/SiteReview.model.js'; // غيّر المسار حسب مكان الموديل
 //تسجيل الدخول 
 export const loginAdmin = async (req, res, next) => {
   const { email, password } = req.body;
@@ -82,4 +82,28 @@ export const resetPassword = async (req, res, next) => {
 
   return res.status(200).json({ message: "تم تغيير كلمة المرور بنجاح" });
 };
+
+
+export const getAvgReviewStats = async (req, res) => {
+  const result = await SiteReviewModel.aggregate([
+    {
+      $group: {
+        _id: null,
+        averageRating: { $avg: "$rating" },
+        totalReviews: { $sum: 1 }
+      }
+    }
+  ]);
+
+  // لو ما في تقييمات، رجّع صفر
+  const stats = result[0] || { averageRating: 0, totalReviews: 0 };
+
+  return res.status(200).json({
+    message: "نجاح",
+    averageRating: stats.averageRating.toFixed(1),  // رقم عشري واحد
+    totalReviews: stats.totalReviews
+  });
+};
+
+
 //node src/modules/Admin/admin.controller.js
