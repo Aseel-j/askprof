@@ -230,39 +230,58 @@ export const createConversation = async (req, res) => {
   const { receiverId, receiverModel } = req.body;
 
   if (!token) {
-    return res.status(401).json({ message: "Token is missing" });
+    return res.status(401).json({ message: "رمز التوثيق مفقود أو غير صالح" });
+  }
+
+  if (!receiverId || !receiverModel) {
+    return res.status(400).json({ message: "الرجاء إرسال معرف المستلم ونوعه" });
   }
 
   try {
-    // فك التوكن لاستخراج المرسل
     const decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
 
     const sender = {
       userId: decoded.id,
-      userModel: decoded.usertype === "مهني" ? "Professional" : "User"
+      userModel: decoded.usertype === "مهني" ? "Professional" : "User",
     };
+
+    // خريطة لتحويل الاسم العربي إلى اسم الموديل الإنجليزي
+    const modelMap = {
+      "مهني": "Professional",
+      "مستخدم": "User",
+      "User": "User",             // لو تم الإرسال بالإنجليزي أيضًا
+      "Professional": "Professional"
+    };
+
+    // تنظيف وحسم نوع المستخدم
+    const modelKey = receiverModel.trim().replace(/\s/g, "");
+    const mappedModel = modelMap[modelKey];
+
+    if (!mappedModel) {
+      return res.status(400).json({ message: "نوع المستخدم غير معروف" });
+    }
 
     const receiver = {
       userId: receiverId,
-      userModel: receiverModel === "مهني" ? "Professional" : "User"
+      userModel: mappedModel,
     };
 
     const participants = [sender, receiver];
 
-    // تحقق إذا المحادثة موجودة مسبقًا
+    // تحقق من وجود المحادثة سابقًا
     const existing = await Conversation.findOne({
-      participants: { $all: participants.map(p => ({ $elemMatch: p })) }
+      participants: { $all: participants.map(p => ({ $elemMatch: p })) },
     });
 
     if (existing) return res.status(200).json(existing);
 
-    // إنشاء محادثة جديدة
+    // إنشاء المحادثة
     const newConversation = new Conversation({ participants });
     await newConversation.save();
 
     res.status(201).json(newConversation);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: "فشل في إنشاء المحادثة", error: error.message });
   }
 };
 // إرسال رسالة في محادثة
