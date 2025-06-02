@@ -8,6 +8,7 @@ import ProfessionalRouter from './modules/professional/professional.router.js';
 import ProfessionalProfileRouter from './modules/professional/profile/ProfessionalProfile.router.js';
 import BookingRouter from './modules/Booking/Booking.router.js';
 import adminRouter from './modules/Admin/admin.router.js';
+import chatRouter from './modules/chat/chat.router.js';
 const initApp = async(app,express)=>{
     app.use(express.json());
     app.use(cors());
@@ -32,7 +33,8 @@ const initApp = async(app,express)=>{
     app.use('/Booking',BookingRouter);
      //Admin
     app.use('/admin', adminRouter);
-
+   //المحادثة
+    app.use("/chat", chatRouter);
 
 //في حال دخل رابط خطا 
    app.use('',(req,res)=>{
