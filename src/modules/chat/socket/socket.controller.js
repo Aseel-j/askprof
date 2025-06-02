@@ -1,4 +1,4 @@
-import { Message } from "../modules/Chat/chat.model.js";
+import Message  from "../../../../DB/models/message.model.js";
 
 export const setupChatSocket = (io) => {
   io.on("connection", (socket) => {
