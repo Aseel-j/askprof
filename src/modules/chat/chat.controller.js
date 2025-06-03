@@ -83,7 +83,7 @@ export const getConversations = async (req, res) => {
     res.status(500).json({ message: "حدث خطأ أثناء جلب الرسائل", error: error.message });
   }
 };*/
-export const getMessages = async (req, res) => {
+/*export const getMessages = async (req, res) => {
   const { token } = req.headers;
   const { conversationId } = req.params;
 
@@ -129,6 +129,74 @@ export const getMessages = async (req, res) => {
       sender,
       receiver,
       messages
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "حدث خطأ أثناء جلب الرسائل",
+      error: error.message
+    });
+  }
+};*/
+export const getMessages = async (req, res) => {
+  const { token } = req.headers;
+  const { conversationId } = req.params;
+
+  if (!token) {
+    return res.status(401).json({ message: "رمز التوثيق مفقود أو غير صالح" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
+    const userId = decoded.id;
+    const userModel = decoded.usertype === "مهني" ? "Professional" : "User";
+
+    const conversation = await Conversation.findById(conversationId).lean();
+    if (!conversation) {
+      return res.status(404).json({ message: "المحادثة غير موجودة" });
+    }
+
+    const isParticipant = conversation.participants.some(
+      p => p.userId.toString() === userId && p.userModel === userModel
+    );
+    if (!isParticipant) {
+      return res.status(403).json({ message: "أنت لست مشاركاً في هذه المحادثة" });
+    }
+
+    const senderInfo = conversation.participants.find(
+      p => p.userId.toString() === userId && p.userModel === userModel
+    );
+    const receiverInfo = conversation.participants.find(
+      p => p.userId.toString() !== userId
+    );
+
+    const senderModel = senderInfo.userModel === "User" ? User : Professional;
+    const receiverModel = receiverInfo.userModel === "User" ? User : Professional;
+
+    const sender = await senderModel.findById(senderInfo.userId).select("_id username profilePicture");
+    const receiver = await receiverModel.findById(receiverInfo.userId).select("_id username profilePicture");
+
+    // ✅ جلب الرسائل + إثراء كل رسالة ببيانات المرسل
+    const rawMessages = await Message.find({ conversationId }).sort({ createdAt: 1 }).lean();
+
+    const enrichedMessages = await Promise.all(
+      rawMessages.map(async (msg) => {
+        const model = msg.sender.userModel === "Professional" ? Professional : User;
+        const senderInfo = await model.findById(msg.sender.userId).select("username profilePicture");
+        return {
+          ...msg,
+          sender: {
+            ...msg.sender,
+            username: senderInfo?.username || "مستخدم",
+            profilePicture: senderInfo?.profilePicture || null,
+          }
+        };
+      })
+    );
+
+    res.status(200).json({
+      sender,
+      receiver,
+      messages: enrichedMessages
     });
   } catch (error) {
     res.status(500).json({
@@ -224,4 +292,49 @@ export const sendMessage = async (req, res) => {
 
     res.status(201).json(message);
 
+};
+//البحث 
+export const searchByNameSchema = async (req, res) => {
+  const { name } = req.query;
+
+  // البحث في جدول المهنيين
+  const professionals = await Professional.find({
+    username: { $regex: name, $options: "i" },
+    isApproved: true,
+    confirmEmail: true
+  }).select("_id username professionField governorate profilePicture").lean();
+
+  // البحث في جدول المستخدمين
+  const users = await User.find({
+    username: { $regex: name, $options: "i" }
+  }).select("_id username usertype").lean();
+
+  // تنسيق المهنيين
+  const formattedProfessionals = professionals.map(p => ({
+    _id: p._id,
+    username: p.username,
+    usertype: "مهني",
+    professionField: p.professionField,
+    governorate: p.governorate?.name || null,
+    profilePicture: p.profilePicture || null
+  }));
+
+  // تنسيق المستخدمين
+  const formattedUsers = users.map(u => ({
+    _id: u._id,
+    username: u.username,
+    usertype: u.usertype || "مستخدم",
+    professionField: null,
+    governorate: null,
+    profilePicture: null
+  }));
+
+  // دمج النتائج
+  const results = [...formattedProfessionals, ...formattedUsers];
+
+  res.status(200).json({
+    message: "تم العثور على النتائج بنجاح",
+    total: results.length,
+    results
+  });
 };
