@@ -175,28 +175,32 @@ export const getMessages = async (req, res) => {
     const sender = await senderModel.findById(senderInfo.userId).select("_id username profilePicture");
     const receiver = await receiverModel.findById(receiverInfo.userId).select("_id username profilePicture");
 
-    // ✅ جلب الرسائل + إثراء كل رسالة ببيانات المرسل
-    const rawMessages = await Message.find({ conversationId }).sort({ createdAt: 1 }).lean();
-
-    const enrichedMessages = await Promise.all(
-      rawMessages.map(async (msg) => {
-        const model = msg.sender.userModel === "Professional" ? Professional : User;
-        const senderInfo = await model.findById(msg.sender.userId).select("username profilePicture");
-        return {
-          ...msg,
-          sender: {
-            ...msg.sender,
-            username: senderInfo?.username || "مستخدم",
-            profilePicture: senderInfo?.profilePicture || null,
-          }
-        };
+    // جلب الرسائل مع معلومات المرسل
+    const messages = await Message.find({ conversationId })
+      .sort({ createdAt: 1 })
+      .populate({
+        path: "sender.userId",
+        select: "username profilePicture",
+        strictPopulate: false
       })
-    );
+      .lean();
+
+    // إعادة تنسيق الرسائل مع بيانات المرسل
+    const formattedMessages = messages.map(msg => ({
+      _id: msg._id,
+      text: msg.text,
+      createdAt: msg.createdAt,
+      sender: {
+        _id: msg.sender.userId._id,
+        username: msg.sender.userId.username,
+        profilePicture: msg.sender.userId.profilePicture
+      }
+    }));
 
     res.status(200).json({
       sender,
       receiver,
-      messages: enrichedMessages
+      messages: formattedMessages
     });
   } catch (error) {
     res.status(500).json({
