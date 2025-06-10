@@ -48,7 +48,7 @@ export const getConversations = async (req, res) => {
   }
 };
 // جلب الرسائل في محادثة معينة
-/*export const getMessages = async (req, res) => {
+export const getMessages = async (req, res) => {
   const { token } = req.headers;
   const { conversationId } = req.params;
 
@@ -115,7 +115,7 @@ export const getConversations = async (req, res) => {
       error: error.message
     });
   }
-};*/
+};
 // إنشاء محادثة جديدة بين المشاركين (أو إعادة استخدام محادثة موجودة)
 export const createConversation = async (req, res) => {
   const { token } = req.headers;
