@@ -48,7 +48,7 @@ export const getConversations = async (req, res) => {
   }
 };
 // جلب الرسائل في محادثة معينة
-export const getMessages = async (req, res) => {
+/*export const getMessages = async (req, res) => {
   const { token } = req.headers;
   const { conversationId } = req.params;
 
@@ -88,6 +88,85 @@ export const getMessages = async (req, res) => {
 
     // ✅ جلب الرسائل + إثراء كل رسالة ببيانات المرسل
     const rawMessages = await Message.find({ conversationId }).sort({ createdAt: 1 }).lean();
+
+    const enrichedMessages = await Promise.all(
+      rawMessages.map(async (msg) => {
+        const model = msg.sender.userModel === "Professional" ? Professional : User;
+        const senderInfo = await model.findById(msg.sender.userId).select("username profilePicture");
+        return {
+          ...msg,
+          sender: {
+            ...msg.sender,
+            username: senderInfo?.username || "مستخدم",
+            profilePicture: senderInfo?.profilePicture || null,
+          }
+        };
+      })
+    );
+
+    res.status(200).json({
+      sender,
+      receiver,
+      messages: enrichedMessages
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "حدث خطأ أثناء جلب الرسائل",
+      error: error.message
+    });
+  }
+};*/
+// جلب الرسائل في محادثة معينة
+export const getMessages = async (req, res) => {
+  const { token } = req.headers;
+  const { conversationId } = req.params;
+
+  const limit = parseInt(req.query.limit) || 20;
+  const skip = parseInt(req.query.skip) || 0;
+
+  if (!token) {
+    return res.status(401).json({ message: "رمز التوثيق مفقود أو غير صالح" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.LOGIN_SIGNAL);
+    const userId = decoded.id;
+    const userModel = decoded.usertype === "مهني" ? "Professional" : "User";
+
+    const conversation = await Conversation.findById(conversationId).lean();
+    if (!conversation) {
+      return res.status(404).json({ message: "المحادثة غير موجودة" });
+    }
+
+    const isParticipant = conversation.participants.some(
+      p => p.userId.toString() === userId && p.userModel === userModel
+    );
+    if (!isParticipant) {
+      return res.status(403).json({ message: "أنت لست مشاركاً في هذه المحادثة" });
+    }
+
+    const senderInfo = conversation.participants.find(
+      p => p.userId.toString() === userId && p.userModel === userModel
+    );
+    const receiverInfo = conversation.participants.find(
+      p => p.userId.toString() !== userId
+    );
+
+    const senderModel = senderInfo.userModel === "User" ? User : Professional;
+    const receiverModel = receiverInfo.userModel === "User" ? User : Professional;
+
+    const sender = await senderModel.findById(senderInfo.userId).select("_id username profilePicture");
+    const receiver = await receiverModel.findById(receiverInfo.userId).select("_id username profilePicture");
+
+    // ✅ جلب الرسائل الأحدث أولًا + skip/limit
+    let rawMessages = await Message.find({ conversationId })
+      .sort({ createdAt: -1 }) // الأحدث أولًا
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    // ✅ قلب الترتيب من الأقدم إلى الأحدث
+    rawMessages.reverse();
 
     const enrichedMessages = await Promise.all(
       rawMessages.map(async (msg) => {
