@@ -240,7 +240,8 @@ export const searchProfessionalsByName = async (req, res) => {
       username: p.username,
       professionField: p.professionField,
       governorate: p.governorate?.name || null,
-      averageRating: ratingMap.get(p._id.toString()) || null
+      //averageRating: ratingMap.get(p._id.toString()) || null
+      rating:ratingMap.get(p._id.toString()) || null,
     }));
 
     res.status(200).json({
