@@ -1,6 +1,8 @@
 import professionalModel from "../../../../DB/models/professional.model.js";
 import ReviewModel from "../../../../DB/models/review.model.js";
 import DeletedProfessionalModel from "../../../../DB/models/deletedProfessional.model.js";
+import ActiveBookingModel from "../../../../DB/models/activeBooking.model.js";
+import InactiveBookingModel from "../../../../DB/models/inactiveBookingSchema.model.js";
 import { sendEmail } from "../../../utils/SendEmail.js";
 //عرض حميع المهنيين
 export const getApprovedProfessionals = async (req, res, next) => {
@@ -263,5 +265,94 @@ export const getDeletedProfessionals = async (req, res, next) => {
   res.status(200).json({
     message: "تم جلب المهنيين المحذوفين بنجاح",
     data: deletedProfessionals
+  });
+};
+//الحجوزات
+export const getBookingStatsByProfessionField = async (req, res, next) => {
+  const { professionField } = req.query;
+
+  const professionals = await professionalModel.find(
+    professionField ? { professionField } : {}
+  ).select('username professionField');
+
+  if (professionals.length === 0) {
+    return res.status(200).json({
+      message: "لا يوجد مهنيين في هذا المجال",
+      data: []
+    });
+  }
+
+  const professionalIds = professionals.map(p => p._id);
+
+  const activeBookings = await ActiveBookingModel.aggregate([
+    {
+      $match: {
+        professionalId: { $in: professionalIds }
+      }
+    },
+    {
+      $group: {
+        _id: "$professionalId",
+        activeBookings: { $sum: 1 }
+      }
+    }
+  ]);
+
+  const inactiveBookings = await InactiveBookingModel.aggregate([
+    {
+      $match: {
+        professionalId: { $in: professionalIds }
+      }
+    },
+    {
+      $group: {
+        _id: "$professionalId",
+        cancelledBookings: { $sum: 1 }
+      }
+    }
+  ]);
+
+  const statsMap = {};
+
+  activeBookings.forEach(item => {
+    statsMap[item._id.toString()] = {
+      professionalId: item._id,
+      activeBookings: item.activeBookings,
+      cancelledBookings: 0
+    };
+  });
+
+  inactiveBookings.forEach(item => {
+    const idStr = item._id.toString();
+    if (statsMap[idStr]) {
+      statsMap[idStr].cancelledBookings = item.cancelledBookings;
+    } else {
+      statsMap[idStr] = {
+        professionalId: item._id,
+        activeBookings: 0,
+        cancelledBookings: item.cancelledBookings
+      };
+    }
+  });
+
+  const result = professionals.map(prof => {
+    const stats = statsMap[prof._id.toString()] || {
+      activeBookings: 0,
+      cancelledBookings: 0
+    };
+
+    return {
+      professionalId: prof._id,
+      professionalName: prof.username,
+      professionField: prof.professionField,
+      totalBookings: stats.activeBookings + stats.cancelledBookings,
+      activeBookings: stats.activeBookings,
+      cancelledBookings: stats.cancelledBookings
+    };
+  });
+
+  res.status(200).json({
+    message: "تم جلب احصائيات الحجوزات بنجاح",
+    data: result
   });
 };

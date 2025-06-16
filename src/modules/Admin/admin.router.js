@@ -36,5 +36,7 @@ router.post('/sendCode',validation(SendCodeSchema),asyncHandler(controller1.Send
 router.post('/resetPassword',validation(resetPasswordSchema),asyncHandler(controller1.resetPassword));
 //عرض معدل التقييمات وعددهن للموقع
 router.get('/getAvgReviewStats',asyncHandler(auth()),asyncHandler(controller1.getAvgReviewStats));
+//الحجوزات
+router.get('/getBookingStatsByProfessionField',asyncHandler(auth()),asyncHandler(controller.getBookingStatsByProfessionField));
 
 export default router;

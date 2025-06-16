@@ -275,6 +275,7 @@ export const searchProfessionalsByName = async (req, res) => {
     professionals: result
   });
 };
+
 /*export const searchProfessionalsByName = async (req, res) => {
   
     const { error } = searchProfessionalsByNameSchema.validate(req.query);

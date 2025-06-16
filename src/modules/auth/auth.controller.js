@@ -341,3 +341,4 @@ export const resetPassword = async (req, res, next) => {
 
   return res.status(200).json({ message: "تم تغيير كلمة المرور بنجاح" });
 };
+//تسجيل خروج 
