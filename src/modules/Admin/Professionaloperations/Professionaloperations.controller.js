@@ -268,7 +268,104 @@ export const getDeletedProfessionals = async (req, res, next) => {
   });
 };
 //الحجوزات
+// الحجوزات
 export const getBookingStatsByProfessionField = async (req, res, next) => {
+  const { professionField, governorate } = req.query;
+
+  // بناء شرط البحث بناءً على وجود القيم
+  const filter = {};
+  if (professionField) filter.professionField = professionField;
+  if (governorate) filter.governorate = governorate;
+
+  // جلب المهنيين مع اسم المحافظة
+  const professionals = await professionalModel.find(filter)
+    .select('username professionField governorate')
+    .populate('governorate', 'name'); // نجيب فقط اسم المحافظة
+
+  if (professionals.length === 0) {
+    return res.status(200).json({
+      message: "لا يوجد مهنيين حسب الفلاتر المطلوبة",
+      data: []
+    });
+  }
+
+  const professionalIds = professionals.map(p => p._id);
+
+  const activeBookings = await ActiveBookingModel.aggregate([
+    {
+      $match: {
+        professionalId: { $in: professionalIds }
+      }
+    },
+    {
+      $group: {
+        _id: "$professionalId",
+        activeBookings: { $sum: 1 }
+      }
+    }
+  ]);
+
+  const inactiveBookings = await InactiveBookingModel.aggregate([
+    {
+      $match: {
+        professionalId: { $in: professionalIds }
+      }
+    },
+    {
+      $group: {
+        _id: "$professionalId",
+        cancelledBookings: { $sum: 1 }
+      }
+    }
+  ]);
+
+  const statsMap = {};
+
+  activeBookings.forEach(item => {
+    statsMap[item._id.toString()] = {
+      professionalId: item._id,
+      activeBookings: item.activeBookings,
+      cancelledBookings: 0
+    };
+  });
+
+  inactiveBookings.forEach(item => {
+    const idStr = item._id.toString();
+    if (statsMap[idStr]) {
+      statsMap[idStr].cancelledBookings = item.cancelledBookings;
+    } else {
+      statsMap[idStr] = {
+        professionalId: item._id,
+        activeBookings: 0,
+        cancelledBookings: item.cancelledBookings
+      };
+    }
+  });
+
+  const result = professionals.map(prof => {
+    const stats = statsMap[prof._id.toString()] || {
+      activeBookings: 0,
+      cancelledBookings: 0
+    };
+
+    return {
+      professionalId: prof._id,
+      professionalName: prof.username,
+      professionField: prof.professionField,
+      governorate: prof.governorate?.name || "غير محددة",
+      totalBookings: stats.activeBookings + stats.cancelledBookings,
+      activeBookings: stats.activeBookings,
+      cancelledBookings: stats.cancelledBookings
+    };
+  });
+
+  res.status(200).json({
+    message: "تم جلب احصائيات الحجوزات بنجاح",
+    data: result
+  });
+};
+
+/*export const getBookingStatsByProfessionField = async (req, res, next) => {
   const { professionField } = req.query;
 
   const professionals = await professionalModel.find(
@@ -355,4 +452,4 @@ export const getBookingStatsByProfessionField = async (req, res, next) => {
     message: "تم جلب احصائيات الحجوزات بنجاح",
     data: result
   });
-};
+};*/
