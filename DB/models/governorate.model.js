@@ -1,5 +1,4 @@
 import { Schema, model ,mongoose} from "mongoose";
-
 const governorateSchema = new Schema({
   name: {
     type: String,

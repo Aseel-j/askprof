@@ -1,5 +1,4 @@
 import { Schema,model ,mongoose} from "mongoose";
-
 const professionalWorkSchema = new mongoose.Schema({
   professional: {
     type: mongoose.Schema.Types.ObjectId,

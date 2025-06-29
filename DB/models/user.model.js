@@ -1,3 +1,4 @@
+//User Schema
 import { Schema,model,mongoose } from "mongoose";
 const userSchema = new Schema({
     username: {

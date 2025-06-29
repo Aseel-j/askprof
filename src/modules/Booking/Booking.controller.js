@@ -22,9 +22,7 @@ export const createBooking = async (req, res) => {
   } catch {
     return res.status(401).json({ message: "توكن غير صالح" });
   }
-
   const userId = decoded.id;
-
   // تحويل professionalId إلى ObjectId
   const profObjectId = new mongoose.Types.ObjectId(professionalId);
 
@@ -42,7 +40,7 @@ export const createBooking = async (req, res) => {
     return res.status(400).json({ message: "وقت البدء يجب أن يكون قبل وقت الانتهاء" });
   }
 
-  // تحقق من صلاحية المستخدم
+  // التحقق من صلاحية المستخدم
   const user = await userModel.findById(userId).select("usertype");
   if (!user || user.usertype !== "مستخدم") {
     return res.status(403).json({ message: "صلاحيات غير كافية" });
@@ -106,15 +104,12 @@ export const getBookings = async (req, res) => {
   } catch {
     return res.status(401).json({ message: "توكن غير صالح" });
   }
-
   const userId = decoded.id;
-
   // جلب المستخدم والمهني بالتوازي
   const [user, professional] = await Promise.all([
     userModel.findById(userId).select("usertype"),
     professionalModel.findById(userId).select("usertype governorate").populate("governorate", "name"),
   ]);
-
   if (!user && !professional)
     return res.status(404).json({ message: "المستخدم غير موجود" });
 
@@ -255,8 +250,7 @@ export const cancelBooking = async (req, res, next) => {
       "تم إلغاء الحجز، إعادة حالة الموعد للإتاحة، وإرسال ايميل بالإلغاء للطرف الآخر فقط",
     cancelledBooking,
   });
-
-  // إرسال الإيميلات بالخلفية بدون انتظار الرد
+  // إرسال الإيميلات 
   const timeText = `${activeBooking.startTime} - ${activeBooking.endTime}`;
   const dateText = new Date(activeBooking.bookingDate).toLocaleDateString("ar-EG");
 

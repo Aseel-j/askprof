@@ -61,22 +61,6 @@ export const getUnapprovedProfessionals = async (req, res, next) => {
     .populate("originalGovernorate", "name")
     .lean();
 
-  const professionalIds = professionals.map(p => p._id);
-
-  const reviews = await ReviewModel.aggregate([
-    { $match: { professional: { $in: professionalIds } } },
-    {
-      $group: {
-        _id: "$professional",
-        averageRating: { $avg: "$rating" }
-      }
-    }
-  ]);
-
-  const ratingMap = new Map(
-    reviews.map(r => [r._id.toString(), Number(r.averageRating.toFixed(1))])
-  );
-
   const result = professionals.map(p => ({
     _id: p._id,
     username: p.username,
@@ -92,8 +76,7 @@ export const getUnapprovedProfessionals = async (req, res, next) => {
     confirmEmail: p.confirmEmail,
     description: p.description,
     bio: p.bio,
-    governorate: p.governorate?.name ?? "غير محددة",
-    rating: ratingMap.get(p._id.toString()) ?? "لا يوجد تقييمات"
+    governorate: p.governorate?.name ?? "غير محددة"
   }));
 
   res.status(200).json({
@@ -114,19 +97,31 @@ export const approveProfessional = async (req, res) => {
 
     if (!updatedProfessional) {
       return res.status(404).json({ message: "المهني غير موجود" });
-    }
+    } 
+    const subject = "تمت الموافقة على حسابك كمهني";
+    const html = `
+      <div style="font-family: Arial; direction: rtl; text-align: right;">
+        <h2>مرحبًا ${updatedProfessional.username}،</h2>
+        <p>نحيطك علمًا بأنه تمت الموافقة على حسابك في منصة <strong>أسأل مهني</strong>.</p>
+        <p>يمكنك الآن تسجيل الدخول والتفاعل مع المستخدمين.</p>
+        <p>مع تحيات فريق أسأل مهني.</p>
+      </div>
+    `;
+
+    await sendEmail(updatedProfessional.email, subject, html);
 
     return res.status(200).json({
       message: "تمت الموافقة على المهني بنجاح",
       professional: updatedProfessional,
     });
+   
+    
 };
 //حذف المهني
 export const deleteProfessional = async (req, res) => {
   const { professionalId } = req.params;
   const { deleteReason } = req.body;
 
-  try {
     const professional = await professionalModel.findById(professionalId);
 
     if (!professional) {
@@ -160,85 +155,61 @@ export const deleteProfessional = async (req, res) => {
       </div>
     `;
 
-    // إرسال الإيميل
-    if (professional.email && typeof professional.email === "string" && professional.email.includes("@")) {
-      await sendEmail(professional.email, subject, html);
-    } else {
-      console.warn("⚠️ لا يمكن إرسال الإيميل. البريد الإلكتروني غير متوفر أو غير صالح:", professional.email);
-    }
+    // إرسال الإيميل بدون أي شرط
+    await sendEmail(professional.email, subject, html);
 
     // حذف المهني من قاعدة البيانات
     await professionalModel.findByIdAndDelete(professionalId);
 
     return res.status(200).json({ message: "تم حذف المهني وتخزين معلوماته مع سبب الحذف بنجاح" });
 
-  } catch (err) {
-    console.error("❌ خطأ أثناء الحذف:", err);
-    return res.status(500).json({ message: "خطأ في الخادم", error: err.message });
-  }
+ 
 };
 //استرجاع المهني
 export const restoreDeletedProfessional = async (req, res) => {
   const { deletedId } = req.params;
   const { restoreReason } = req.body;
 
-  try {
-    const deletedProfessional = await DeletedProfessionalModel.findById(deletedId);
+  const deletedProfessional = await DeletedProfessionalModel.findById(deletedId);
 
-    if (!deletedProfessional) {
-      return res.status(404).json({ message: "المهني المحذوف غير موجود" });
-    }
-
-    const restoredProfessional = await professionalModel.create({
-      _id: deletedProfessional.professionalId,
-      username: deletedProfessional.username,
-      email: deletedProfessional.email,
-      phoneNumber: deletedProfessional.phoneNumber,
-      birthdate: deletedProfessional.birthdate,
-      gender: deletedProfessional.gender,
-      professionField: deletedProfessional.professionField,
-      governorate: deletedProfessional.governorate,
-      originalGovernorate: deletedProfessional.originalGovernorate,
-      usertype: deletedProfessional.usertype,
-      confirmEmail: true,
-      password: deletedProfessional.password, // كلمة السر كما كانت
-      isApproved: true,
-    });
-
-    // إعداد الإيميل
-    const subject = "تم استرجاع حسابك";
-    const html = `
-      <div style="font-family: Arial; direction: rtl; text-align: right;">
-        <h2>مرحباً ${restoredProfessional.username}</h2>
-        <p>يسعدنا إعلامك أنه تم استرجاع حسابك في منصة "أسأل مهني".</p>
-        <p><strong>سبب الاسترجاع:</strong> ${restoreReason}</p>
-        <p>مع التحية،<br>فريق أسأل مهني</p>
-      </div>
-    `;
-
-    // إرسال الإيميل إن وجد بريد صحيح
-    if (
-      restoredProfessional.email &&
-      typeof restoredProfessional.email === "string" &&
-      restoredProfessional.email.includes("@")
-    ) {
-      await sendEmail(restoredProfessional.email, subject, html);
-    } else {
-      console.warn("⚠️ لا يمكن إرسال الإيميل. البريد غير متوفر أو غير صالح:", restoredProfessional.email);
-    }
-
-    // حذف السجل من المحذوفين
-    await DeletedProfessionalModel.findByIdAndDelete(deletedId);
-
-    return res.status(200).json({
-      message: "تم استرجاع المهني بنجاح وإرسال إيميل",
-      professional: restoredProfessional,
-    });
-
-  } catch (err) {
-    console.error("❌ خطأ أثناء استرجاع المهني:", err);
-    return res.status(500).json({ message: "حدث خطأ في الخادم", error: err.message });
+  if (!deletedProfessional) {
+    return res.status(404).json({ message: "المهني المحذوف غير موجود" });
   }
+
+  const restoredProfessional = await professionalModel.create({
+    _id: deletedProfessional.professionalId,
+    username: deletedProfessional.username,
+    email: deletedProfessional.email,
+    phoneNumber: deletedProfessional.phoneNumber,
+    birthdate: deletedProfessional.birthdate,
+    gender: deletedProfessional.gender,
+    professionField: deletedProfessional.professionField,
+    governorate: deletedProfessional.governorate,
+    originalGovernorate: deletedProfessional.originalGovernorate,
+    usertype: deletedProfessional.usertype,
+    confirmEmail: true,
+    password: deletedProfessional.password,
+    isApproved: true,
+  });
+
+  const subject = "تم استرجاع حسابك";
+  const html = `
+    <div style="font-family: Arial; direction: rtl; text-align: right;">
+      <h2>مرحباً ${restoredProfessional.username}</h2>
+      <p>يسعدنا إعلامك أنه تم استرجاع حسابك في منصة "أسأل مهني".</p>
+      <p><strong>سبب الاسترجاع:</strong> ${restoreReason}</p>
+      <p>مع التحية،<br>فريق أسأل مهني</p>
+    </div>
+  `;
+
+  await sendEmail(restoredProfessional.email, subject, html);
+
+  await DeletedProfessionalModel.findByIdAndDelete(deletedId);
+
+  return res.status(200).json({
+    message: "تم استرجاع المهني بنجاح وإرسال إيميل",
+    professional: restoredProfessional,
+  });
 };
 //عرض الاراء 
 export const getAllReviews = async (req, res) => {
@@ -268,7 +239,6 @@ export const getDeletedProfessionals = async (req, res, next) => {
   });
 };
 //الحجوزات
-// الحجوزات
 export const getBookingStatsByProfessionField = async (req, res, next) => {
   const { professionField, governorate } = req.query;
 
@@ -280,7 +250,7 @@ export const getBookingStatsByProfessionField = async (req, res, next) => {
   // جلب المهنيين مع اسم المحافظة
   const professionals = await professionalModel.find(filter)
     .select('username professionField governorate')
-    .populate('governorate', 'name'); // نجيب فقط اسم المحافظة
+    .populate('governorate', 'name'); 
 
   if (professionals.length === 0) {
     return res.status(200).json({
@@ -364,92 +334,3 @@ export const getBookingStatsByProfessionField = async (req, res, next) => {
     data: result
   });
 };
-
-/*export const getBookingStatsByProfessionField = async (req, res, next) => {
-  const { professionField } = req.query;
-
-  const professionals = await professionalModel.find(
-    professionField ? { professionField } : {}
-  ).select('username professionField');
-
-  if (professionals.length === 0) {
-    return res.status(200).json({
-      message: "لا يوجد مهنيين في هذا المجال",
-      data: []
-    });
-  }
-
-  const professionalIds = professionals.map(p => p._id);
-
-  const activeBookings = await ActiveBookingModel.aggregate([
-    {
-      $match: {
-        professionalId: { $in: professionalIds }
-      }
-    },
-    {
-      $group: {
-        _id: "$professionalId",
-        activeBookings: { $sum: 1 }
-      }
-    }
-  ]);
-
-  const inactiveBookings = await InactiveBookingModel.aggregate([
-    {
-      $match: {
-        professionalId: { $in: professionalIds }
-      }
-    },
-    {
-      $group: {
-        _id: "$professionalId",
-        cancelledBookings: { $sum: 1 }
-      }
-    }
-  ]);
-
-  const statsMap = {};
-
-  activeBookings.forEach(item => {
-    statsMap[item._id.toString()] = {
-      professionalId: item._id,
-      activeBookings: item.activeBookings,
-      cancelledBookings: 0
-    };
-  });
-
-  inactiveBookings.forEach(item => {
-    const idStr = item._id.toString();
-    if (statsMap[idStr]) {
-      statsMap[idStr].cancelledBookings = item.cancelledBookings;
-    } else {
-      statsMap[idStr] = {
-        professionalId: item._id,
-        activeBookings: 0,
-        cancelledBookings: item.cancelledBookings
-      };
-    }
-  });
-
-  const result = professionals.map(prof => {
-    const stats = statsMap[prof._id.toString()] || {
-      activeBookings: 0,
-      cancelledBookings: 0
-    };
-
-    return {
-      professionalId: prof._id,
-      professionalName: prof.username,
-      professionField: prof.professionField,
-      totalBookings: stats.activeBookings + stats.cancelledBookings,
-      activeBookings: stats.activeBookings,
-      cancelledBookings: stats.cancelledBookings
-    };
-  });
-
-  res.status(200).json({
-    message: "تم جلب احصائيات الحجوزات بنجاح",
-    data: result
-  });
-};*/

@@ -82,8 +82,7 @@ export const resetPassword = async (req, res, next) => {
 
   return res.status(200).json({ message: "تم تغيير كلمة المرور بنجاح" });
 };
-
-
+//معدل التقييم للموقع
 export const getAvgReviewStats = async (req, res) => {
   const result = await SiteReviewModel.aggregate([
     {
@@ -105,5 +104,3 @@ export const getAvgReviewStats = async (req, res) => {
   });
 };
 
-
-//node src/modules/Admin/admin.controller.js

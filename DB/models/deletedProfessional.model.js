@@ -1,6 +1,4 @@
-// models/deletedProfessional.model.js
 import mongoose from 'mongoose';
-
 const deletedProfessionalSchema = new mongoose.Schema({
   professionalId: { type: mongoose.Schema.Types.ObjectId },
   username: String,

@@ -1,5 +1,4 @@
 import { AppError } from "../utils/App.Error.js";
-
 const validation = (schemas) => {
   return (req, res, next) => {
     const errors = [];
@@ -17,7 +16,7 @@ const validation = (schemas) => {
         errors.push(...result.error.details.map(err => err.message));
       }
     }
-    // Validate query (if needed)
+    // Validate query 
     if (schemas.query) {
       const result = schemas.query.validate(req.query, { abortEarly: false });
       if (result.error) {

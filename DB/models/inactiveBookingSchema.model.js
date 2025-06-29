@@ -1,5 +1,4 @@
 import { Schema, model,mongoose } from 'mongoose';
-
 const inactiveBookingSchema = new Schema(
   {
     bookingDate: {
@@ -37,6 +36,5 @@ const inactiveBookingSchema = new Schema(
     timestamps: true, 
   }
 );
-
 const InactiveBookingModel = mongoose.models.InactiveBooking ||model('InactiveBooking', inactiveBookingSchema);
 export default InactiveBookingModel;

@@ -2,9 +2,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import AdminModel from "../../../DB/models/admin.model.js";
-
 dotenv.config();
-
 async function createAdmin() {
   try {
     await mongoose.connect(process.env.DB, {
@@ -13,7 +11,7 @@ async function createAdmin() {
     });
     const adminEmail = process.env.ADMIN_EMAIL || "admin@example.com";
     const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
-    const adminName = process.env.ADMIN_NAME || "Super Admin";
+    const adminName = process.env.ADMIN_NAME || "Admin";
     const existingAdmin = await AdminModel.findOne({ email: adminEmail });
     if (existingAdmin) {
       console.log("Admin already exists:", adminEmail);

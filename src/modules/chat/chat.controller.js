@@ -214,48 +214,4 @@ export const sendMessage = async (req, res) => {
     res.status(201).json(message);
 
 };
-//البحث 
-export const searchByNameSchema = async (req, res) => {
-  const { name } = req.query;
 
-  // البحث في جدول المهنيين
-  const professionals = await Professional.find({
-    username: { $regex: name, $options: "i" },
-    isApproved: true,
-    confirmEmail: true
-  }).select("_id username professionField governorate profilePicture").lean();
-
-  // البحث في جدول المستخدمين
-  const users = await User.find({
-    username: { $regex: name, $options: "i" }
-  }).select("_id username usertype").lean();
-
-  // تنسيق المهنيين
-  const formattedProfessionals = professionals.map(p => ({
-    _id: p._id,
-    username: p.username,
-    usertype: "مهني",
-    professionField: p.professionField,
-    governorate: p.governorate?.name || null,
-    profilePicture: p.profilePicture || null
-  }));
-
-  // تنسيق المستخدمين
-  const formattedUsers = users.map(u => ({
-    _id: u._id,
-    username: u.username,
-    usertype: u.usertype || "مستخدم",
-    professionField: null,
-    governorate: null,
-    profilePicture: null
-  }));
-
-  // دمج النتائج
-  const results = [...formattedProfessionals, ...formattedUsers];
-
-  res.status(200).json({
-    message: "تم العثور على النتائج بنجاح",
-    total: results.length,
-    results
-  });
-};

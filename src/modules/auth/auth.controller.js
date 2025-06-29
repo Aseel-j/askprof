@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import jwt from "jsonwebtoken";
 import { customAlphabet  } from 'nanoid'
 import { sendEmail } from '../../utils/SendEmail.js';
+
 //انشاء الحساب
 export const register = async (req, res, next) => {
   const {
@@ -101,97 +102,6 @@ export const confirmEmail = async (req, res) => {
   return res.status(404).json({ message: "الحساب غير موجود" });
 };
 //تسجيل الدخول 
-/*export const login = async (req, res,next) => {
-   const { email, password } = req.body;
-    // البحث عن المستخدم أو المهني
-    let user = await userModel.findOne({ email });
-    let usertype = "مستخدم";
-
-    if (!user) {
-      user = await professionalModel.findOne({ email });
-      usertype = "مهني";
-    }
-    
-    if (!user) {
-     return res.status(400).json({ message: "خطا في البريد الإلكتروني او كلمة المرور " });
-
-    }
-
-    if (!user.confirmEmail) {
-      return res.status(403).json({ message: "يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول" });
-
-    }
-    const check = bcrypt.compareSync(password, user.password);
-   if (!check) {
-     return res.status(400).json({ message: "خطا في البريد الإلكتروني او كلمة المرور " });
-
-    }
-
-    if (usertype === "مهني" && !user.isApproved) {
-      return res.status(403).json({ message: "لم تتم الموافقة على حسابك بعد " });
-    }
-
-    const token = jwt.sign({ id: user._id, name: user.username, usertype: user.usertype },process.env.LOGIN_SIGNAL);
-
-    return res.status(200).json({ message: "تم تسجيل الدخول بنجاح", token });
-};*/
-/*export const login = async (req, res, next) => {
-  const { email, password } = req.body;
-
-  // نبحث أولاً في جدول الأدمن
-  const admin = await AdminModel.findOne({ email });
-  if (admin) {
-    const check = bcrypt.compareSync(password, admin.password);
-    if (!check) return res.status(400).json({ message: "خطأ في البريد الإلكتروني أو كلمة المرور" });
-
-    const token = jwt.sign(
-      { id: admin._id, name: admin.name, role: "admin" },
-      process.env.LOGIN_SIGNAL
-    );
-
-    return res.status(200).json({ message: "تم تسجيل الدخول بنجاح", token });
-  }
-
-  // لو مش أدمن، نبحث في جدول المستخدمين
-  const user = await userModel.findOne({ email });
-  if (user) {
-    if (!user.confirmEmail) {
-      return res.status(403).json({ message: "يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول" });
-    }
-    const check = bcrypt.compareSync(password, user.password);
-    if (!check) return res.status(400).json({ message: "خطأ في البريد الإلكتروني أو كلمة المرور" });
-
-    const token = jwt.sign(
-      { id: user._id, name: user.username, usertype: "مستخدم" },
-      process.env.LOGIN_SIGNAL
-    );
-
-    return res.status(200).json({ message: "تم تسجيل الدخول بنجاح", token });
-  }
-
-  // لو مش مستخدم، نبحث في جدول المهنيين
-  const professional = await professionalModel.findOne({ email });
-  if (professional) {
-    if (!professional.confirmEmail) {
-      return res.status(403).json({ message: "يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول" });
-    }
-    if (!professional.isApproved) {
-      return res.status(403).json({ message: "لم تتم الموافقة على حسابك بعد" });
-    }
-    const check = bcrypt.compareSync(password, professional.password);
-    if (!check) return res.status(400).json({ message: "خطأ في البريد الإلكتروني أو كلمة المرور" });
-
-    const token = jwt.sign(
-      { id: professional._id, name: professional.username, usertype: "مهني" },
-      process.env.LOGIN_SIGNAL
-    );
-
-    return res.status(200).json({ message: "تم تسجيل الدخول بنجاح", token });
-  }
-
-  // إذا ما لقيت لا أدمن ولا مستخدم ولا مهني
-  return res.status(400).json({ message: "خطأ في البريد الإلكتروني أو كلمة المرور" });
-};*/
 export const login = async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -243,28 +153,6 @@ export const login = async (req, res, next) => {
   return res.status(400).json({ message: "خطأ في البريد الإلكتروني أو كلمة المرور" });
 };
 //ارسال رمز تحقق
-/*export const SendCode = async(req,res,next)=>{
-  const {email}= req.body;
-  const code = customAlphabet('1234567890abcdefABCDEF', 4)();
-  let user = await userModel.findOne({ email });
-
-  if (user) {
-    user.sendCode = code;
-    await user.save();
-  } else {
-    // إذا لم يوجد، ابحث في المهنيين
-    user = await professionalModel.findOne({ email });
-    if (!user) {
-     return res.status(404).json({ message: "البريد الإلكتروني غير مسجل " });
-    }
-    user.sendCode = code;
-    await user.save();
-  }
-   const html= `<h2>code is ${code}<h2/>`;
-   await sendEmail(email,'تغيير كلمة المرور',html);
-   return res.status(200).json({message:"success"});
-
-};*/
 export const SendCode = async (req, res, next) => {
   const { email } = req.body;
    const code = customAlphabet('1234567890abcdefABCDEF', 6)();
@@ -293,26 +181,6 @@ const expireTime = new Date(Date.now() + 5 * 60 * 1000); // بعد 5 دقائق
   return res.status(200).json({ message: "تم إرسال رمز التحقق إلى بريدك الإلكتروني" });
 };
 //تغيير كلمة المرور
-/*export const resetPassword= async(req,res,next)=>{
-  const {code,email,password}=req.body;
-
-   let user = await userModel.findOne({ email });
-   if (!user) {
-     user = await professionalModel.findOne({ email });
-     if (!user) {
-      return res.status(400).json({ message: "البريد الإلكتروني غير صحيح " });
-     }
-   }
-  if(user.sendCode != code){
-   return res.status(400).json({ message: "رمز التحقق غير صحيح " });
-
-  }
-  const hashedpassword= await bcrypt.hash(password,parseInt(process.env.SALT_ROUND));
-  user.password=hashedpassword;
-  user.sendCode=null;
-  await user.save();
-  return res.status(200).json({ message: "تم تغيير كلمة المرور بنجاح" });
-} */
 export const resetPassword = async (req, res, next) => {
   const { email, code, password } = req.body;
 
@@ -341,4 +209,4 @@ export const resetPassword = async (req, res, next) => {
 
   return res.status(200).json({ message: "تم تغيير كلمة المرور بنجاح" });
 };
-//تسجيل خروج 
+

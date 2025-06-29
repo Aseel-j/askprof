@@ -1,5 +1,4 @@
 import { Schema, model, mongoose } from "mongoose";
-
 const workingHoursSchema = new Schema({
   professional: {
     type: mongoose.Schema.Types.ObjectId,
