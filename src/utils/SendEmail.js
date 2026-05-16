@@ -8,7 +8,7 @@ export async function sendEmail(to,subject,html){
         }
     });
     const info = await transporter.sendMail({
-        from:`"Ask Pofessional "<${process.env.sender_email}>`,
+        from:`"Ask Pofessional "<${process.env.SENDER_EMAIL}>`,
         to,
         subject,
         html,
