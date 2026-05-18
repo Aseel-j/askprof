@@ -21,7 +21,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function sendEmail(to, subject, html) {
   try {
     const response = await resend.emails.send({
-      from: "Ask Professional <onboarding@resend.dev>",
+      from: "Ask Professional <no-reply@yourapp.com>",
       to,
       subject,
       html,
