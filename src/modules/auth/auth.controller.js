@@ -184,7 +184,7 @@ const expireTime = new Date(Date.now() + 5 * 60 * 1000); // بعد 5 دقائق
 export const resetPassword = async (req, res, next) => {
   const { email, code, password } = req.body;
 
-  const user = await userModel.findOne({ email });
+  let user = await userModel.findOne({ email });
   if (!user) user = await professionalModel.findOne({ email });
   if (!user) {
     return res.status(400).json({ message: "البريد الإلكتروني غير صحيح" });
