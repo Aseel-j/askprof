@@ -7,7 +7,7 @@ import { customAlphabet  } from 'nanoid'
 import { sendEmail } from '../../utils/SendEmail.js';
 
 //انشاء الحساب
-/*export const register = async (req, res, next) => {
+export const register = async (req, res, next) => {
   const {
     username,
     email,
@@ -85,133 +85,6 @@ import { sendEmail } from '../../utils/SendEmail.js';
     await newUser.save();
     await sendEmail(email, "تأكيد الحساب", html);
     return res.status(201).json({ message: "تم إنشاء حساب المستخدم بنجاح" });
-  }
-};*/
-// إنشاء الحساب
-export const register = async (req, res, next) => {
-  try {
-    const {
-      username,
-      email,
-      phoneNumber,
-      password,
-      birthdate,
-      gender,
-      usertype,
-      originalGovernorate,
-      professionField
-    } = req.body;
-
-    // تحقق من نوع المستخدم
-    if (!["مستخدم", "مهني"].includes(usertype)) {
-      return res.status(400).json({ message: "نوع المستخدم غير صالح" });
-    }
-
-    // تحقق من وجود الإيميل
-    const existingUser = await userModel.findOne({ email });
-    const existingProfessional = await professionalModel.findOne({ email });
-
-    if (existingUser || existingProfessional) {
-      return res.status(409).json({ message: "البريد الإلكتروني مستخدم مسبقًا" });
-    }
-
-    // حماية SALT_ROUND
-    const saltRounds = parseInt(process.env.SALT_ROUND);
-    if (!saltRounds) {
-      return res.status(500).json({ message: "SALT_ROUND غير معرف في السيرفر" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    // التحقق من المحافظة
-    let governorateId = null;
-    if (usertype === "مهني" && originalGovernorate) {
-      const governorateExists = await governorateModel.findOne({ name: originalGovernorate });
-
-      if (!governorateExists) {
-        return res.status(400).json({ message: "المحافظة غير موجودة" });
-      }
-
-      governorateId = governorateExists._id;
-    }
-
-    // حماية JWT secret
-    if (!process.env.CONFIRM_EMAIL_SIGNAL) {
-      return res.status(500).json({ message: "CONFIRM_EMAIL_SIGNAL غير معرف" });
-    }
-
-    const token = jwt.sign({ email }, process.env.CONFIRM_EMAIL_SIGNAL);
-
-    const html = `
-      <div>
-        <h1>مرحبا ${username}</h1>
-        <h2>انقر هنا لتأكيد الحساب</h2>
-        <a href="${req.protocol}://${req.headers.host}/auth/confirmEmail/${token}">
-          confirm your email
-        </a>
-      </div>
-    `;
-
-    // إرسال الإيميل بشكل آمن (ما يكسر التسجيل لو فشل)
-    const safeSendEmail = async () => {
-      try {
-        await sendEmail(email, "تأكيد الحساب", html);
-      } catch (err) {
-        console.log("EMAIL ERROR:", err.message);
-      }
-    };
-
-    if (usertype === "مهني") {
-      if (!professionField) {
-        return res.status(400).json({ message: "يرجى إدخال مجال المهني" });
-      }
-
-      const newProfessional = new professionalModel({
-        username,
-        email,
-        phoneNumber,
-        password: hashedPassword,
-        birthdate,
-        gender,
-        usertype,
-        originalGovernorate: governorateId,
-        professionField,
-        isApproved: false,
-        confirmEmail: false
-      });
-
-      await newProfessional.save();
-      await safeSendEmail();
-
-      return res.status(201).json({
-        message: "تم انشاء الحساب المهني بنجاح، بانتظار موافقة الأدمن"
-      });
-
-    } else {
-      const newUser = new userModel({
-        username,
-        email,
-        phoneNumber,
-        password: hashedPassword,
-        birthdate,
-        gender,
-        usertype,
-        confirmEmail: false
-      });
-
-      await newUser.save();
-      await safeSendEmail();
-
-      return res.status(201).json({
-        message: "تم إنشاء حساب المستخدم بنجاح"
-      });
-    }
-
-  } catch (error) {
-    console.log("REGISTER ERROR:", error);
-    return res.status(500).json({
-      message: error.message || "Internal Server Error"
-    });
   }
 };
 //تاكيد الحساب 
