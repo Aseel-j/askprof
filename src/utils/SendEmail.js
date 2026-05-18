@@ -14,16 +14,24 @@ import nodemailer from "nodemailer";
         html,
     });
 }*/
+
+
 export async function sendEmail(to, subject, html) {
   try {
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
-      port: 587,
-      secure: false, // مهم جدًا
+      port: 465,
+      secure: true, // SSL (أكثر استقرار من 587 على Render)
+
       auth: {
         user: process.env.SENDER_EMAIL,
         pass: process.env.SENDER_EMAIL_PASS,
       },
+
+      connectionTimeout: 20000,
+      greetingTimeout: 20000,
+      socketTimeout: 20000,
+
       tls: {
         rejectUnauthorized: false,
       },
@@ -39,7 +47,8 @@ export async function sendEmail(to, subject, html) {
     console.log("EMAIL SENT SUCCESSFULLY");
 
   } catch (error) {
-    console.log("EMAIL ERROR:", error);
-    throw error;
+    console.log("EMAIL ERROR:", error.message);
+    // لا نكسر التطبيق
   }
+}
 }
