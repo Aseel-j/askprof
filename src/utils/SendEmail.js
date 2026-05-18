@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+//import nodemailer from "nodemailer";
 /*export async function sendEmail(to,subject,html){
     const transporter= nodemailer.createTransport({
         service:"gmail",
@@ -14,41 +14,25 @@ import nodemailer from "nodemailer";
         html,
     });
 }*/
+import { Resend } from "resend";
 
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendEmail(to, subject, html) {
   try {
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true, // SSL (أكثر استقرار من 587 على Render)
-
-      auth: {
-        user: process.env.SENDER_EMAIL,
-        pass: process.env.SENDER_EMAIL_PASS,
-      },
-
-      connectionTimeout: 20000,
-      greetingTimeout: 20000,
-      socketTimeout: 20000,
-
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
-
-    await transporter.sendMail({
-      from: `"Ask Professional" <${process.env.SENDER_EMAIL}>`,
+    const response = await resend.emails.send({
+      from: "Ask Professional <onboarding@resend.dev>",
       to,
       subject,
       html,
     });
 
-    console.log("EMAIL SENT SUCCESSFULLY");
+    console.log("EMAIL SENT SUCCESSFULLY:", response.id);
+    return response;
 
   } catch (error) {
     console.log("EMAIL ERROR:", error.message);
-    // لا نكسر التطبيق
+    // ما نكسر التطبيق
+    return null;
   }
 }
-
